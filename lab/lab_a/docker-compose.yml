@@ -1,0 +1,78 @@
+name: patchplanner-lab-a
+
+services:
+  web:
+    image: nginx:1.21.6-alpine
+    labels:
+      patchplanner.asset_id: web01
+      patchplanner.zone: internet
+      patchplanner.criticality: "8"
+      patchplanner.crown_jewel: "false"
+      patchplanner.entry_point: "true"
+    networks: [internet_facing, dmz]
+
+  app:
+    image: php:7.4.33-apache
+    labels:
+      patchplanner.asset_id: app01
+      patchplanner.zone: dmz
+      patchplanner.criticality: "7"
+      patchplanner.crown_jewel: "false"
+      patchplanner.entry_point: "false"
+    networks: [dmz, internal]
+
+  database:
+    image: mariadb:10.6.18
+    environment:
+      MARIADB_ROOT_PASSWORD: lab-only-not-a-real-secret
+      MARIADB_DATABASE: demo
+    labels:
+      patchplanner.asset_id: db01
+      patchplanner.zone: internal
+      patchplanner.criticality: "10"
+      patchplanner.crown_jewel: "true"
+      patchplanner.entry_point: "false"
+    networks: [internal]
+
+  file_server:
+    image: httpd:2.4.49
+    labels:
+      patchplanner.asset_id: file01
+      patchplanner.zone: internal
+      patchplanner.criticality: "5"
+      patchplanner.crown_jewel: "false"
+      patchplanner.entry_point: "false"
+    networks: [internal]
+
+  jump_host:
+    image: alpine:3.19
+    # A no-shell listener for reachability demonstrations; this is not an SSH server.
+    command: ["sh", "-c", "while true; do nc -l -p 22 >/dev/null 2>&1; done"]
+    labels:
+      patchplanner.asset_id: jump01
+      patchplanner.zone: dmz
+      patchplanner.criticality: "6"
+      patchplanner.crown_jewel: "false"
+      patchplanner.entry_point: "false"
+    networks: [dmz, internal]
+
+  decoy:
+    image: nginx:1.21.6-alpine
+    labels:
+      patchplanner.asset_id: decoy01
+      patchplanner.zone: internet
+      patchplanner.criticality: "1"
+      patchplanner.crown_jewel: "false"
+      patchplanner.entry_point: "false"
+    networks: [internet_facing]
+
+networks:
+  internet_facing:
+    name: patchplanner-a-internet
+    internal: true
+  dmz:
+    name: patchplanner-a-dmz
+    internal: true
+  internal:
+    name: patchplanner-a-internal
+    internal: true
