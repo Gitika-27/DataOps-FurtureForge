@@ -1,114 +1,192 @@
 # Patch Min-Cut Planner + Skeptic Agent
 
-A four-person security automation prototype that prioritizes vulnerability remediation by **whether a finding blocks an attack path to a critical asset**, not by severity score alone. The system builds an attack graph from scan and reachability data, challenges scanner findings with evidence, and proposes a low-cost set of patches. It then verifies that the proposed plan leaves no modeled path from an entry point to a crown jewel.
+A four-person cybersecurity automation prototype that prioritizes fixes by whether evidence supports an attacker path to a critical asset, rather than sorting by CVSS alone. It ingests a contained Docker lab, enriches scanner evidence, challenges findings, builds a bounded attack graph, selects a low-cost set of patches, verifies the modeled paths are cut, and generates an auditable report.
 
-> **Project status:** Person 1's lab/ingestion and Person 2's enrichment/graph/optimizer/verification modules are present. Person 3's Skeptic/report and Person 4's API/UI/demo modules are still separate team deliverables. The mock pipeline and P1→P2 integration tests are available now.
+> **Project status:** Persons 1, 2, and 3 are integrated in this repository. Person 4 still owns the FastAPI service, React/Vite/Cytoscape UI, and final demo integration. The command-line pipeline and report work without Person 4's code.
 
 ## Why this project
 
-A critical vulnerability on an isolated machine may be less urgent than a medium-severity vulnerability that an attacker can use to reach a database. Conventional severity sorting does not explain which small set of fixes would cut every modeled path to important assets. This project combines network context, vulnerability evidence, and patch-cost optimization to help a team focus its remediation effort.
-
-The term “min-cut style” is useful for the pitch, but the optimizer is more precisely a **minimum-cost hitting-set problem**: each candidate patch may remove multiple attack edges, and the chosen patch set must touch every entry-point-to-crown-jewel path.
+A severe issue on an isolated host may be less urgent than a lower-scored issue that can be used to reach a database. The project combines scan evidence, network reachability, vulnerability metadata, and patch effort estimates to propose a small set of fixes. The optimizer is precisely a **minimum-cost patch hitting-set** problem: selected patches must intersect every modeled entry-point-to-crown-jewel path.
 
 ## End-to-end workflow
 
-1. **Lab and ingest:** Start one of the local Docker lab variants. Nmap identifies open services; Trivy scans container images. The parser writes normalized assets, services, raw findings, and reachability data.
+1. **Person 1 — Lab and ingest:** Docker Compose labs, Nmap open-service scan, Trivy image scan, normalized `scan.json` and `reach.json`.
+2. **Person 2 — Enrich:** Cache-first NVD, CISA KEV, and FIRST EPSS lookups. Preserve raw scanner evidence; do not infer a service port from `suggested_ports`.
+3. **Person 3 — Skeptic:** One Pydantic `Verdict` per input finding. Deterministic version, exact service/version, open port, topology reachability, NVD CPE range, network attack-vector, and explicitly supplied compensating-control checks run first. LLM use is optional and cannot add findings, invent evidence, or upgrade a rule-based verdict.
+4. **Person 2 — Graph and optimize:** Only a remotely exploitable finding with accepted verdict and matching reachability can produce a graph edge. The hitting-set optimizer uses PuLP with a deterministic greedy fallback.
+5. **Person 2 — Verify:** Apply chosen patches to a graph copy; a valid modeled plan must leave `paths_after == 0`.
+6. **Person 3 — Report:** Generate an escaped, printable Jinja2 HTML report, and optionally PDF, with summary, before/after paths, patch evidence, rejected findings, and limitations.
+7. **Person 4 — API/UI/demo:** Consume the JSON handoff outputs, add the API, visualization, and demo experience.
 
-1. **Enrich:** Look up CVE details from NVD, whether a CVE appears in CISA KEV, and EPSS exploitation probability. Cache responses for repeatable, offline-friendly runs.
+## Team ownership and handoff
 
-1. **Challenge findings:** Apply deterministic checks first, such as affected-version range, observed open port, reachability, and compensating controls. Use an LLM only for ambiguous cases or explanations. Validate its output against the shared `Verdict` model; it may downgrade or reject a finding but must not invent new findings.
+- **Person 1:** `lab/`, `ingest/`, `data/mock/`, `scan.json`, `reach.json`.
+- **Person 2:** `core/enrich.py`, `core/graph.py`, `core/optimize.py`, `core/verify.py`, `core/pipeline.py`.
+- **Person 3:** `skeptic/`, `report/`, and `tests/test_person3_skeptic_report.py`.
+- **Person 4:** `api/`, `ui/`, and final demo integration (not included yet).
 
-1. **Build the attack graph:** Treat assets as nodes. Add an edge only when reachability and a sufficiently supported remotely exploitable finding justify it. Keep the patch identifier on each edge.
+The frozen data models are in `contracts/models.py`: `Asset`, `Service`, `Finding`, `Verdict`, `Reach`, and `PatchPlan`. Coordinate with the team before changing any field names or types.
 
-1. **Optimize:** Use integer linear programming to select the lowest-cost set of patches that intersects every modeled attack path. Keep a greedy fallback for solver failures.
-
-1. **Verify:** Apply the plan to a copy of the graph and recalculate reachability. A valid plan must leave zero paths from any entry point to any crown jewel.
-
-1. **Report and visualize:** Show the graph before and after, path counts, the patch plan with evidence, rejected findings and reasons, and the project’s limitations.
-
-## Team ownership
-
-- **Person 1 — Lab + ingestion:** Docker Compose labs, scanner runner, Nmap/Trivy parsing, `scan.json` and `reach.json`, mock fallback data.
-
-- **Person 2 — Enrichment + graph + optimizer:** NVD/KEV/EPSS cache, graph construction, path enumeration, minimum hitting-set optimizer, greedy fallback, and verification.
-
-- **Person 3 — Skeptic + report:** Deterministic skeptic rules, carefully bounded LLM use, validated verdicts, and HTML/PDF report generation.
-
-- **Person 4 — API + UI + demo:** FastAPI integration, React/Vite/Cytoscape interface, demo mode, final integration, pitch, and backup demo.
-
-Keep `contracts/models.py` stable. Discuss and agree with the whole team before changing a field name or type. Each module should work against the mock data before full integration.
-
-## Data handoff and contracts
-
-The shared models are in `contracts/models.py`: `Asset`, `Service`, `Finding`, `Verdict`, `Reach`, and `PatchPlan`.
-
-The planned handoff is:
-
-```
-scan.json + reach.json  →  enriched findings  →  verdicts.json
-       Person 1                  Person 2          Person 3
-                                                   ↓
-                  graph + verified plan  →  report and UI
-                         Person 2             Persons 3–4
+```text
+P1 scan.json + reach.json
+          │
+          ▼
+P2 core.pipeline → enriched findings.json
+          │
+          ▼
+P3 skeptic.run_skeptic → verdicts + reviewed findings
+          │                     │
+          ├── P2 graph/optimizer/verifier → graph.json + plan.json
+          └── P3 report → report.html (+ optional report.pdf)
+                                │
+                                ▼
+                         P4 API and UI
 ```
 
-`scan.json` contains assets, observed services, and scanner-native `raw_findings`. `reach.json` contains `{ "src", "dst", "port" }` records. Agree on exact file paths and the input shape with the other module owners before integration.
+## Requirements
 
-**Important:** A Trivy image/package CVE is evidence that a package in an image may be vulnerable; it is not by itself proof of a remotely reachable service vulnerability. In the current ingestion output, `port: 0` means no service port has been justified for that raw finding. The Skeptic/graph pipeline must check package/version evidence and service context before turning it into an attack-graph edge.
+- Python 3.11 or newer (the Windows steps below use Python 3.13).
+- Docker Desktop with its engine running only for real lab scans; included mock runs need no Docker.
+- Internet access for first-time Docker pulls or live enrichment. Cached/offline mock runs make no network requests.
 
+There is no separate CSV dataset. The Docker labs are the controlled scan target; mock JSON is committed for repeatable development. NVD/KEV/EPSS are enrichment sources, not a manual dataset download.
 
-## Person 2 core modules
+## Windows PowerShell / VS Code quick start
 
-The enrichment, graph, optimization, verification, and P1→P2 handoff modules live in `core/`.
-Run the complete local test suite, including the P1→P2 integration tests, with:
+Open the **repository root** in VS Code. In its PowerShell terminal, install project dependencies into the existing virtual environment (or create it first if it does not exist):
 
-```bash
-python -m pip install -r requirements.txt
-python -m pytest -q
+```powershell
+py -3.13 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install --upgrade pip
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 ```
 
-On Windows PowerShell with the project's Python 3.13 virtual environment, use:
+Run all tests:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pytest -q
 ```
 
-`core.enrich.enrich_scan(scan, offline=True)` uses existing JSON files in `cache/`
-without making network requests. Online mode fetches NVD CVE details, the CISA KEV
-catalog, and FIRST EPSS scores, then caches each response. `offline=False` is the
-default; `offline=True` is recommended for a repeatable demo.
+Expected test result in this integrated version: **29 passed**.
 
-To combine a P1 mock scan and reachability file with P2 enrichment, run:
+### Run both mock labs offline
+
+These commands exercise the full P1→P2→P3 pipeline, including HTML and PDF reports. They do not need Docker or a CVE API key:
 
 ```powershell
 .\.venv\Scripts\python.exe -m core.pipeline --lab lab_a --mock --offline
+.\.venv\Scripts\python.exe -m skeptic.run_skeptic --input data/processed/lab_a/findings.json --output-dir data/processed/lab_a --pdf
+
+.\.venv\Scripts\python.exe -m core.pipeline --lab lab_b --mock --offline
+.\.venv\Scripts\python.exe -m skeptic.run_skeptic --input data/processed/lab_b/findings.json --output-dir data/processed/lab_b --pdf
 ```
 
-This writes `data/processed/lab_a/findings.json`, preserving the P1 assets,
-services, and reach records while attaching any cached enrichment. To process a
-real scan from `data/scans/lab_a/`, omit `--mock`. Omit `--offline` only when you
-want P2 to make live enrichment requests. The document is marked
-`awaiting_skeptic_review`; it is not yet a confirmed attack graph or patch plan.
+For this included mock set, the Skeptic should produce two valid verdicts and a report. **`no_modeled_paths` is an expected, honest result with the default empty offline NVD cache:** the mock data does not establish affected NVD CPE ranges and AV:N evidence, so the system must not invent a network attack path. The report explains that no paths is not proof of safety. Unit/integration tests also exercise a clearly synthetic, fully evidenced chain that results in a selected patch and `paths_after == 0`.
 
-`core.graph.build_attack_graph(assets, reach, findings, verdicts)` implements the
-guide's edge rule. If verdicts are supplied, only `confirmed` and `downgraded`
-findings are accepted. A finding must be remotely exploitable and have a real
-service port matching the destination reachability record. In particular, the
-ingestion contract's `port: 0` and `suggested_ports` are not proof of service
-attribution and are not converted into graph edges. This protects the graph from
-turning image/package evidence into an unsupported network exploit claim.
+For Person 4's graph/Optimize UI to have a non-empty path in a deterministic local demo, use the separately committed fixture:
 
-The optimizer enumerates simple entry-point-to-crown-jewel paths with an 8-hop
-default cap, solves the minimum-cost patch hitting-set with PuLP when available,
-and falls back to a deterministic greedy method. `core.verify.verify_plan` then
-independently applies the patches to a graph copy and checks that no bounded
-attack paths remain. The shared `contracts/models.py` is unchanged.
+```powershell
+.\.venv\Scripts\python.exe -m skeptic.run_skeptic --input data/mock/demo/lab_a/findings.json --output-dir data/processed/demo/lab_a --pdf
+```
 
-`core.pipeline.run_verified_planner(...)` is the integration entry point for
-port-specific `Finding` objects and their P3 `Verdict` objects. It refuses to
-plan if verdicts are missing. Its P1/P2 integration tests use the included mock
-reachability records plus explicitly synthetic, reviewed findings to check that
-Lab A and Lab B each produce a path, choose a low-cost patch, and verify zero
-remaining paths. These fixtures test the integration seam; they are not scanner
-evidence. An end-to-end real-scan-to-plan run still requires Person 3 to provide
-the reviewed findings and verdicts.
+This fixture uses **invented future CVE IDs and fabricated NVD-shaped metadata** and is labelled synthetic throughout. It exercises the software path only; it is not scanner evidence, a real CVE, or a security assessment. The expected result is `verified`, one modeled path before, zero after, with `demo-db-fix` selected.
+
+To produce only HTML, omit `--pdf`. To force the optimizer fallback, add `--greedy` to the Skeptic command.
+
+### Run a real lab scan
+
+With Docker Desktop running, scan Lab A or Lab B first. For example:
+
+```powershell
+.\.venv\Scripts\python.exe ingest/run_scan.py --lab lab_a
+.\.venv\Scripts\python.exe -m core.pipeline --lab lab_a
+.\.venv\Scripts\python.exe -m skeptic.run_skeptic --input data/processed/lab_a/findings.json --output-dir data/processed/lab_a --pdf
+```
+
+For Lab B, replace `lab_a` with `lab_b`. The scan writes scanner outputs under `data/scans/<lab>/`; enrichment produces `data/processed/<lab>/findings.json`. The enrichment command without `--offline` makes best-effort live requests and caches responses. It can use stale cache or continue without enrichment if a service is unavailable. Stop the lab after a scan with:
+
+```powershell
+docker compose -f lab/lab_a/docker-compose.yml down
+```
+
+### Optional LLM explanations
+
+No LLM is needed to run the default workflow. To request a cached explanation for downgraded findings, set a compatible chat-completions API configuration in your local shell (never commit a real key):
+
+```powershell
+$env:P3_LLM_API_KEY = "YOUR_API_KEY"
+$env:P3_LLM_BASE_URL = "https://api.openai.com/v1"
+$env:P3_LLM_MODEL = "gpt-4o-mini"
+.\.venv\Scripts\python.exe -m skeptic.run_skeptic --input data/processed/lab_a/findings.json --output-dir data/processed/lab_a --llm-explanations --pdf
+```
+
+The LLM response is parsed as a `Verdict`, validated, retried once on invalid output, and cached by a hash of the deterministic input. The LLM may keep or downgrade a verdict, never upgrade it, and its evidence must be an exact subset of rule evidence. If the service is unavailable or output invalid, the deterministic verdict is kept. An LLM explanation is not proof of exploitability.
+
+### Optional compensating-control input
+
+A control is considered only when explicitly provided and marked effective and blocking; the program does not discover or validate controls itself. Example `controls.json`:
+
+```json
+[
+  {
+    "finding_id": "asset:CVE-2024-1234:package",
+    "name": "verified blocking control",
+    "effective": true,
+    "blocks_exploitation": true
+  }
+]
+```
+
+Pass it with `--controls controls.json` to the Skeptic command.
+
+## Person 3 rules and outputs
+
+`skeptic/skeptic_rules.py` returns a valid shared `Verdict` for every raw finding. A package finding with `port: 0` is attributed only when its package identity and installed version match an observed service on the same asset; `suggested_ports` alone never count as proof. The service port must also be present in the topology's incoming reach records. A `confirmed` graph finding additionally requires an NVD vulnerable CPE match for the installed version and an NVD network attack vector. Missing or ambiguous metadata is downgraded and marked not remotely exploitable for graph construction. Checks are deterministic triage, not exploit validation.
+
+The Skeptic run writes these files to `data/processed/<lab>/`:
+
+- `verdicts.json`: one auditable shared `Verdict` per raw input finding.
+- `reviewed_findings.json`: graph-facing findings with service attribution only where justified.
+- `graph.json`: nodes and accepted attack edges for Person 4's visualization.
+- `plan.json`: status, paths, selected patches, and independent verification details.
+- `report.html`: printable report; `report.pdf` is created when `--pdf` is used.
+- `skeptic_result.json`: compact status/count summary for API integration.
+
+The report shows rejected findings with reasons, selected patches with supporting verdict evidence, before/after path counts, and the limitations of the model. `paths_after` must be zero for a status of `verified`. If there are no supported paths before optimization, the system reports `no_modeled_paths` and **0% measured reduction**, not a false 100% success.
+
+## Repository layout
+
+```text
+contracts/models.py                  Frozen shared models
+lab/lab_a/, lab/lab_b/               Isolated Docker labs
+lab/scanner/                         Nmap scanner container
+ingest/                               Nmap/Trivy parsing and scan runner
+data/mock/                           Synthetic mock scans and reachability
+core/enrich.py                        NVD/KEV/EPSS cache
+core/graph.py                         Graph and bounded path enumeration
+core/optimize.py                      ILP plus greedy patch optimizer
+core/verify.py                        Independent plan verification
+core/pipeline.py                      P1→P2 handoff
+skeptic/skeptic_rules.py              Deterministic P3 rules
+skeptic/skeptic_llm.py                Optional validated explanations
+skeptic/run_skeptic.py                P3→P2→report orchestration
+report/template.html                  Jinja2 report template
+report/build_report.py                HTML and optional PDF rendering
+tests/                                P1, P2, P3 and integration tests
+api/, ui/                             Person 4's remaining deliverables
+```
+
+## Safety and honest limitations
+
+The labs contain intentionally old software and must be run only on your own machine and isolated Docker networks. Do not connect them to a real network or scan systems without authorization. The tool runs no exploits. Reachability is modeled from the lab's declared network membership and observed open ports; it is not a general firewall-policy scanner. CVE applicability and software-version parsing can be incomplete, NVD metadata may be unavailable, and a Skeptic verdict does not prove whether a vulnerability is exploitable. Path counts are bounded by the hop limit. Patch costs are effort heuristics. A verified plan means every **modeled** path is cut, not that a real environment is secure.
+
+## Handoff checklist for Person 4
+
+- [x] Frozen contracts and P1/P2 modules retained.
+- [x] P3 returns a valid `Verdict` for every supplied finding.
+- [x] P3 cannot add findings or allow an LLM to upgrade a verdict.
+- [x] Mock P1→P2→P3 run works for both labs offline.
+- [x] Graph, plan, verdicts, report HTML, and optional PDF are written as files.
+- [x] Verified synthetic chain demonstrates `paths_after == 0` in tests.
+- [ ] Person 4 integrates the FastAPI endpoints, React/Vite/Cytoscape interface, and demo mode.
+- [ ] Run and rehearse the complete UI demo after Person 4 integration.

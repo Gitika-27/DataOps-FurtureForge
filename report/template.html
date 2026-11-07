@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Patch Min-Cut Planner — {{ lab_id }} report</title>
+  <style>
+    @page { size: A4; margin: 16mm; }
+    :root { color-scheme: light; }
+    body { font-family: Arial, Helvetica, sans-serif; color: #172033; margin: 0 auto; max-width: 900px; font-size: 10pt; line-height: 1.45; }
+    header { border-bottom: 4px solid #245b8f; padding: 0 0 14px; margin-bottom: 20px; }
+    h1 { margin: 0 0 4px; font-size: 24pt; color: #123553; }
+    h2 { margin: 22px 0 8px; font-size: 15pt; color: #123553; border-bottom: 1px solid #d7e0e8; padding-bottom: 4px; }
+    h3 { margin: 12px 0 4px; font-size: 11pt; }
+    .meta, .muted { color: #536477; }
+    .banner { padding: 10px 12px; border-radius: 4px; margin: 12px 0; background: #edf4fb; border-left: 4px solid #245b8f; }
+    .banner.warning { background: #fff5e6; border-color: #d17b00; }
+    .banner.success { background: #eaf7ef; border-color: #238344; }
+    .metrics { display: flex; gap: 10px; margin: 14px 0; }
+    .metric { border: 1px solid #d7e0e8; border-radius: 5px; padding: 10px; flex: 1; min-width: 100px; }
+    .metric strong { display: block; font-size: 19pt; color: #123553; }
+    table { border-collapse: collapse; width: 100%; margin: 8px 0 14px; }
+    th, td { border: 1px solid #d7e0e8; padding: 7px 8px; text-align: left; vertical-align: top; }
+    th { background: #f1f5f8; color: #193b58; }
+    .badge { display: inline-block; border-radius: 3px; padding: 2px 6px; background: #edf4fb; font-weight: bold; text-transform: uppercase; font-size: 8pt; }
+    .confirmed { color: #176b38; background: #e8f5ec; }
+    .downgraded { color: #8a5700; background: #fff2d8; }
+    .rejected { color: #9d2b2b; background: #fdeaea; }
+    ul { margin: 4px 0 8px; padding-left: 18px; }
+    li { margin: 2px 0; }
+    .small { font-size: 8.5pt; }
+    footer { margin-top: 24px; border-top: 1px solid #d7e0e8; padding-top: 8px; color: #536477; font-size: 8pt; }
+    .no-break { page-break-inside: avoid; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Patch Min-Cut Planner</h1>
+  <div class="meta">Skeptic review and verified remediation report · {{ lab_id }} · Generated {{ generated_at }}</div>
+</header>
+
+{% if status == "verified" %}
+<div class="banner success"><strong>Plan verified:</strong> the modeled entry-point-to-crown-jewel paths are cut by the selected patches. This is limited to the supplied evidence and graph rules.</div>
+{% elif status == "no_modeled_paths" %}
+<div class="banner warning"><strong>No modeled attack paths were found.</strong> This is not proof that the environment is secure. Review scan coverage, asset labels, open ports, and the findings below.</div>
+{% else %}
+<div class="banner warning"><strong>Plan status: {{ status }}.</strong> Do not treat this output as a verified remediation plan.</div>
+{% endif %}
+
+<div class="metrics">
+  <div class="metric"><strong>{{ paths_before }}</strong>modeled paths before</div>
+  <div class="metric"><strong>{{ paths_after }}</strong>modeled paths after</div>
+  <div class="metric"><strong>{{ patches|length }}</strong>selected patches</div>
+  <div class="metric"><strong>{{ verdict_counts.confirmed }}</strong>confirmed · {{ verdict_counts.downgraded }} downgraded · {{ verdict_counts.rejected }} rejected</div>
+</div>
+
+<h2>Summary</h2>
+<p>{{ summary }}</p>
+<p class="muted small">Risk reduction shown: {{ risk_reduction_pct }}%. The path count is bounded to simple paths of at most {{ max_hops }} hops and depends on the supplied lab topology.</p>
+
+<h2>Selected patch plan</h2>
+{% if patches %}
+<table>
+  <thead><tr><th>Patch ID</th><th>Estimated cost</th><th>Related findings and evidence</th></tr></thead>
+  <tbody>
+  {% for patch in patches %}
+  <tr class="no-break"><td><strong>{{ patch.id }}</strong></td><td>{{ patch.cost }}</td><td>
+    {% if patch.findings %}<ul>{% for item in patch.findings %}<li><strong>{{ item.finding_id }}</strong> — {{ item.reasoning }}<ul>{% for fact in item.evidence %}<li>{{ fact }}</li>{% endfor %}</ul></li>{% endfor %}</ul>{% else %}<span class="muted">No finding details attached.</span>{% endif %}
+  </td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% else %}<p>No patch was selected. If the baseline path count is zero, check the warning above rather than interpreting this as proof of safety.</p>{% endif %}
+
+<h2>Rejected findings</h2>
+{% if rejected %}
+<table>
+  <thead><tr><th>Finding</th><th>Reason</th><th>Evidence</th></tr></thead>
+  <tbody>{% for item in rejected %}<tr class="no-break"><td>{{ item.finding_id }}</td><td>{{ item.reasoning }}</td><td><ul>{% for fact in item.evidence %}<li>{{ fact }}</li>{% endfor %}</ul></td></tr>{% endfor %}</tbody>
+</table>
+{% else %}<p>No findings were rejected by the deterministic review.</p>{% endif %}
+
+<h2>Finding review ledger</h2>
+<table>
+  <thead><tr><th>Finding</th><th>Status</th><th>Confidence</th><th>Reasoning</th></tr></thead>
+  <tbody>{% for item in verdicts %}<tr class="no-break"><td>{{ item.finding_id }}</td><td><span class="badge {{ item.status }}">{{ item.status }}</span></td><td>{{ "%.0f"|format(item.confidence * 100) }}%</td><td>{{ item.reasoning }}<ul>{% for fact in item.evidence %}<li>{{ fact }}</li>{% endfor %}</ul></td></tr>{% endfor %}</tbody>
+</table>
+
+<h2>Limitations</h2>
+<ul>{% for item in limitations %}<li>{{ item }}</li>{% endfor %}</ul>
+<footer>Generated by the Patch Min-Cut Planner prototype. No exploit was run. Findings, topology, version matching, patch costs, and path enumeration are evidence-bounded and may be incomplete.</footer>
+</body>
+</html>
