@@ -1,0 +1,30 @@
+{
+  "SchemaVersion": 2,
+  "ArtifactName": "synthetic-decoy01:mock",
+  "ArtifactType": "container_image",
+  "Results": [
+    {
+      "Target": "synthetic-decoy01:mock",
+      "Type": "alpine",
+      "Vulnerabilities": [
+        {
+          "VulnerabilityID": "CVE-2021-23017",
+          "PkgName": "nginx",
+          "InstalledVersion": "1.21.6",
+          "FixedVersion": "1.21.7",
+          "Severity": "HIGH",
+          "Title": "nginx resolver vulnerability (synthetic demo association)",
+          "PrimaryURL": "https://example.invalid/CVE-2021-23017",
+          "CVSS": {
+            "nvd": {
+              "V3Score": 7.7
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "Notes": [
+    "SYNTHETIC FIXTURE ONLY. Not output from Trivy or a real scan."
+  ]
+}

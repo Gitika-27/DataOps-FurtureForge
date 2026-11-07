@@ -60,17 +60,23 @@ def build_attack_graph(
             continue
         for finding in findings_by_target_port.get((dst, port), []):
             patch_id = str(finding.get("patch_id") or finding.get("id"))
+            patch_cost = max(1, int(finding.get("patch_cost", 1) or 1))
             if graph.has_edge(src, dst):
                 edge = graph[src][dst]
                 if patch_id not in edge["patch_ids"]:
                     edge["patch_ids"].append(patch_id)
+                old_cost = edge["patch_costs"].get(patch_id)
+                if old_cost is not None and old_cost != patch_cost:
+                    raise ValueError(f"Inconsistent patch cost for {patch_id}: {old_cost} vs {patch_cost}")
+                edge["patch_costs"][patch_id] = patch_cost
+                edge["patch_cost"] = min(edge["patch_costs"].values())
                 edge["finding_ids"].append(str(finding.get("id", "")))
                 edge["ports"].append(port)
             else:
                 graph.add_edge(
                     src, dst, patch_id=patch_id, patch_ids=[patch_id],
                     finding_ids=[str(finding.get("id", ""))], ports=[port],
-                    patch_cost=max(1, int(finding.get("patch_cost", 1) or 1)),
+                    patch_cost=patch_cost, patch_costs={patch_id: patch_cost},
                 )
     return graph
 

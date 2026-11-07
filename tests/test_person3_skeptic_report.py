@@ -1,4 +1,5 @@
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -10,6 +11,11 @@ from skeptic.skeptic_llm import explain_verdict
 from skeptic.skeptic_rules import review_finding, review_findings
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def assert_one_pdf_page(path: Path):
+    pdf = path.read_bytes()
+    assert len(re.findall(rb"/Type\s*/Page(?!s)", pdf)) == 1
 
 
 def _nvd(package="apache", product="http_server", version="2.4.49", vector="NETWORK"):
@@ -155,6 +161,7 @@ def test_report_html_escapes_untrusted_strings_and_contains_audit_sections(tmp_p
     assert "Rejected findings" in html
     assert "Limitations" in html
     assert pdf_path is not None and pdf_path.exists() and pdf_path.stat().st_size > 1000
+    assert_one_pdf_page(pdf_path)
 
 
 def test_complete_p1_p2_p3_chain_builds_and_verifies_graph_then_report(tmp_path):
@@ -194,3 +201,4 @@ def test_committed_synthetic_demo_fixture_produces_verified_plan_and_report(tmp_
     report = (tmp_path / "report.html").read_text(encoding="utf-8")
     assert "SYNTHETIC DEMO FIXTURE ONLY" in report
     assert (tmp_path / "report.pdf").stat().st_size > 1000
+    assert_one_pdf_page(tmp_path / "report.pdf")

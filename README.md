@@ -15,7 +15,7 @@ A severe issue on an isolated host may be less urgent than a lower-scored issue 
 3. **Person 3 — Skeptic:** One Pydantic `Verdict` per input finding. Deterministic version, exact service/version, open port, topology reachability, NVD CPE range, network attack-vector, and explicitly supplied compensating-control checks run first. LLM use is optional and cannot add findings, invent evidence, or upgrade a rule-based verdict.
 4. **Person 2 — Graph and optimize:** Only a remotely exploitable finding with accepted verdict and matching reachability can produce a graph edge. The hitting-set optimizer uses PuLP with a deterministic greedy fallback.
 5. **Person 2 — Verify:** Apply chosen patches to a graph copy; a valid modeled plan must leave `paths_after == 0`.
-6. **Person 3 — Report:** Generate an escaped, printable Jinja2 HTML report, and optionally PDF, with summary, before/after paths, patch evidence, rejected findings, and limitations.
+6. **Person 3 — Report:** Generate a detailed escaped Jinja2 HTML evidence ledger and an optional one-page PDF executive summary with before/after paths, patch evidence, rejected reasons, and limitations.
 7. **Person 4 — API/UI/demo:** Consume the JSON handoff outputs, add the API, visualization, and demo experience.
 
 ## Team ownership and handoff
@@ -67,7 +67,7 @@ Run all tests:
 .\.venv\Scripts\python.exe -m pytest -q
 ```
 
-Expected test result in this integrated version: **29 passed**.
+Expected test result in this integrated version: **33 passed**.
 
 ### Run both mock labs offline
 
@@ -82,6 +82,15 @@ These commands exercise the full P1→P2→P3 pipeline, including HTML and PDF r
 ```
 
 For this included mock set, the Skeptic should produce two valid verdicts and a report. **`no_modeled_paths` is an expected, honest result with the default empty offline NVD cache:** the mock data does not establish affected NVD CPE ranges and AV:N evidence, so the system must not invent a network attack path. The report explains that no paths is not proof of safety. Unit/integration tests also exercise a clearly synthetic, fully evidenced chain that results in a selected patch and `paths_after == 0`.
+
+To exercise the P1 parser itself without Docker, parse the committed Nmap-XML/Trivy-JSON **synthetic format fixtures** for either lab:
+
+```powershell
+.\.venv\Scripts\python.exe -m ingest.parse_scan --raw-dir data/mock/scanner-format/lab_a --output-dir data/processed/parser-check/lab_a
+.\.venv\Scripts\python.exe -m ingest.parse_scan --raw-dir data/mock/scanner-format/lab_b --output-dir data/processed/parser-check/lab_b
+```
+
+These are parser test fixtures derived from mock records, **not captured scanner output**. They do not replace a real Nmap/Trivy run.
 
 For Person 4's graph/Optimize UI to have a non-empty path in a deterministic local demo, use the separately committed fixture:
 
@@ -149,7 +158,7 @@ The Skeptic run writes these files to `data/processed/<lab>/`:
 - `reviewed_findings.json`: graph-facing findings with service attribution only where justified.
 - `graph.json`: nodes and accepted attack edges for Person 4's visualization.
 - `plan.json`: status, paths, selected patches, and independent verification details.
-- `report.html`: printable report; `report.pdf` is created when `--pdf` is used.
+- `report.html`: full, detailed, printable evidence ledger; one-page executive `report.pdf` is created when `--pdf` is used.
 - `skeptic_result.json`: compact status/count summary for API integration.
 
 The report shows rejected findings with reasons, selected patches with supporting verdict evidence, before/after path counts, and the limitations of the model. `paths_after` must be zero for a status of `verified`. If there are no supported paths before optimization, the system reports `no_modeled_paths` and **0% measured reduction**, not a false 100% success.
@@ -161,7 +170,7 @@ contracts/models.py                  Frozen shared models
 lab/lab_a/, lab/lab_b/               Isolated Docker labs
 lab/scanner/                         Nmap scanner container
 ingest/                               Nmap/Trivy parsing and scan runner
-data/mock/                           Synthetic mock scans and reachability
+data/mock/                           Normalized mocks, scanner-format fixtures, and demo fixture
 core/enrich.py                        NVD/KEV/EPSS cache
 core/graph.py                         Graph and bounded path enumeration
 core/optimize.py                      ILP plus greedy patch optimizer
@@ -170,7 +179,8 @@ core/pipeline.py                      P1→P2 handoff
 skeptic/skeptic_rules.py              Deterministic P3 rules
 skeptic/skeptic_llm.py                Optional validated explanations
 skeptic/run_skeptic.py                P3→P2→report orchestration
-report/template.html                  Jinja2 report template
+report/template.html                  Detailed Jinja2 HTML report
+report/pdf_template.html              One-page PDF executive summary template
 report/build_report.py                HTML and optional PDF rendering
 tests/                                P1, P2, P3 and integration tests
 api/, ui/                             Person 4's remaining deliverables
@@ -186,7 +196,9 @@ The labs contain intentionally old software and must be run only on your own mac
 - [x] P3 returns a valid `Verdict` for every supplied finding.
 - [x] P3 cannot add findings or allow an LLM to upgrade a verdict.
 - [x] Mock P1→P2→P3 run works for both labs offline.
+- [x] Synthetic raw Nmap-XML/Trivy-JSON fixtures parse through P1 for both labs.
 - [x] Graph, plan, verdicts, report HTML, and optional PDF are written as files.
+- [x] PDF is a one-page executive summary; HTML retains the detailed evidence ledger.
 - [x] Verified synthetic chain demonstrates `paths_after == 0` in tests.
 - [ ] Person 4 integrates the FastAPI endpoints, React/Vite/Cytoscape interface, and demo mode.
 - [ ] Run and rehearse the complete UI demo after Person 4 integration.

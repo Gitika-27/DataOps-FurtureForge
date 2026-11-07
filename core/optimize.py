@@ -23,10 +23,14 @@ def _path_bundles(graph: nx.DiGraph, paths: list[list[str]]) -> list[list[frozen
 def _patch_costs(graph: nx.DiGraph) -> dict[str, float]:
     costs: dict[str, float] = {}
     for _, _, data in graph.edges(data=True):
-        edge_cost = float(data.get("patch_cost", 1) or 1)
+        recorded = data.get("patch_costs") or {}
         for patch in data.get("patch_ids", [data.get("patch_id")]):
             if patch:
-                costs[str(patch)] = min(costs.get(str(patch), float("inf")), edge_cost)
+                patch_id = str(patch)
+                cost = float(recorded.get(patch_id, data.get("patch_cost", 1)) or 1)
+                if patch_id in costs and costs[patch_id] != cost:
+                    raise ValueError(f"Inconsistent patch cost for {patch_id}: {costs[patch_id]} vs {cost}")
+                costs[patch_id] = cost
     return costs
 
 

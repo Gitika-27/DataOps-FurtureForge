@@ -112,3 +112,24 @@ def test_normalize_does_not_invent_reachability_or_port_attribution(tmp_path):
     assert scan["raw_findings"][0]["port"] == 0
     assert scan["raw_findings"][0]["suggested_ports"] == [80]
     assert scan["raw_findings"][0]["cvss"] == 8.0
+
+
+def test_synthetic_raw_scanner_fallback_normalizes_both_labs(tmp_path):
+    for lab_id in ("lab_a", "lab_b"):
+        raw_dir = ROOT / "data" / "mock" / "scanner-format" / lab_id
+        output_dir = tmp_path / lab_id
+        scan_path, reach_path = normalize(raw_dir, output_dir)
+        parsed_scan = json.loads(scan_path.read_text(encoding="utf-8"))
+        parsed_reach = json.loads(reach_path.read_text(encoding="utf-8"))["reach"]
+        expected_scan = json.loads((ROOT / "data" / "mock" / lab_id / "scan.json").read_text(encoding="utf-8"))
+        expected_reach = json.loads((ROOT / "data" / "mock" / lab_id / "reach.json").read_text(encoding="utf-8"))["reach"]
+
+        assert len(parsed_scan["assets"]) == 6
+        assert {tuple(s[key] for key in ("asset_id", "port", "name", "version")) for s in parsed_scan["services"]} == {
+            tuple(s[key] for key in ("asset_id", "port", "name", "version")) for s in expected_scan["services"]
+        }
+        assert len(parsed_scan["raw_findings"]) == len(expected_scan["raw_findings"]) == 2
+        assert {(e["src"], e["dst"], e["port"]) for e in parsed_reach} == {
+            (e["src"], e["dst"], e["port"]) for e in expected_reach
+        }
+        assert "SYNTHETIC" in (raw_dir / "inventory.json").read_text(encoding="utf-8")

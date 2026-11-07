@@ -81,3 +81,32 @@ def test_optimizer_handles_multiple_independent_findings_on_one_edge():
     plan = optimize_patches(g)
     assert plan == ["p1", "p2"]
     assert verify_plan(g, plan)["paths_after"] == 0
+
+
+def test_merged_edge_preserves_individual_patch_costs():
+    assets = [
+        {"id": "entry", "ip": "10.0.0.1", "zone": "internet", "criticality": 8, "is_entry_point": True},
+        {"id": "app", "ip": "10.0.0.2", "zone": "dmz", "criticality": 6},
+        {"id": "db", "ip": "10.0.0.3", "zone": "internal", "criticality": 10, "is_crown_jewel": True},
+    ]
+    reach = [{"src": "entry", "dst": "app", "port": 80}, {"src": "app", "dst": "db", "port": 3306}]
+    findings = [
+        {"id": "app-vuln", "asset_id": "app", "port": 80, "remote_exploitable": True, "patch_id": "app-fix", "patch_cost": 5},
+        {"id": "db-vuln-one", "asset_id": "db", "port": 3306, "remote_exploitable": True, "patch_id": "db-fix-one", "patch_cost": 1},
+        {"id": "db-vuln-two", "asset_id": "db", "port": 3306, "remote_exploitable": True, "patch_id": "db-fix-two", "patch_cost": 8},
+    ]
+    verdicts = [{"finding_id": finding["id"], "status": "confirmed"} for finding in findings]
+    graph = build_attack_graph(assets, reach, findings, verdicts)
+    assert graph["app"]["db"]["patch_costs"] == {"db-fix-one": 1, "db-fix-two": 8}
+    assert optimize_patches(graph) == ["app-fix"]
+    assert verify_plan(graph, ["app-fix"])["paths_after"] == 0
+
+
+def test_greedy_fallback_returns_a_verified_plan():
+    g = nx.DiGraph()
+    node(g, "entry", entry=True); node(g, "app"); node(g, "db", crown=True)
+    edge(g, "entry", "app", "web-fix", 4)
+    edge(g, "app", "db", "db-fix", 1)
+    plan = optimize_patches(g, use_ilp=False)
+    assert plan == ["db-fix"]
+    assert verify_plan(g, plan)["valid"]

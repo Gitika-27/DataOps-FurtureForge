@@ -95,6 +95,15 @@ def render_html(context: dict[str, Any]) -> str:
     return env.get_template("template.html").render(**context)
 
 
+def render_pdf_html(context: dict[str, Any]) -> str:
+    """Render a compact one-page executive summary; full evidence remains in HTML."""
+    env = Environment(
+        loader=FileSystemLoader(str(TEMPLATE_DIR)),
+        autoescape=select_autoescape(["html", "xml"]),
+    )
+    return env.get_template("pdf_template.html").render(**context)
+
+
 def write_report(
     context: dict[str, Any],
     output_html: Path,
@@ -112,7 +121,8 @@ def write_report(
             raise RuntimeError("PDF export requires xhtml2pdf; install it with: python -m pip install xhtml2pdf") from exc
         output_pdf.parent.mkdir(parents=True, exist_ok=True)
         with output_pdf.open("wb") as target:
-            result = pisa.CreatePDF(src=html, dest=target, encoding="utf-8")
+            pdf_html = render_pdf_html(context)
+            result = pisa.CreatePDF(src=pdf_html, dest=target, encoding="utf-8")
         if result.err:
             raise RuntimeError(f"PDF generation failed with {result.err} rendering error(s)")
         pdf_path = output_pdf

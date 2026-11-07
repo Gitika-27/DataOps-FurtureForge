@@ -2,17 +2,98 @@
   "schema_version": 1,
   "lab_id": "lab_a",
   "reach": [
-    {"src": "web01", "dst": "app01", "port": 80},
-    {"src": "web01", "dst": "jump01", "port": 22},
-    {"src": "app01", "dst": "db01", "port": 3306},
-    {"src": "app01", "dst": "file01", "port": 80},
-    {"src": "app01", "dst": "jump01", "port": 22},
-    {"src": "jump01", "dst": "db01", "port": 3306},
-    {"src": "jump01", "dst": "file01", "port": 80},
-    {"src": "db01", "dst": "file01", "port": 80},
-    {"src": "file01", "dst": "db01", "port": 3306},
-    {"src": "web01", "dst": "decoy01", "port": 80},
-    {"src": "decoy01", "dst": "web01", "port": 80}
+    {
+      "src": "app01",
+      "dst": "db01",
+      "port": 3306
+    },
+    {
+      "src": "app01",
+      "dst": "file01",
+      "port": 80
+    },
+    {
+      "src": "app01",
+      "dst": "jump01",
+      "port": 22
+    },
+    {
+      "src": "app01",
+      "dst": "web01",
+      "port": 80
+    },
+    {
+      "src": "db01",
+      "dst": "app01",
+      "port": 80
+    },
+    {
+      "src": "db01",
+      "dst": "file01",
+      "port": 80
+    },
+    {
+      "src": "db01",
+      "dst": "jump01",
+      "port": 22
+    },
+    {
+      "src": "decoy01",
+      "dst": "web01",
+      "port": 80
+    },
+    {
+      "src": "file01",
+      "dst": "app01",
+      "port": 80
+    },
+    {
+      "src": "file01",
+      "dst": "db01",
+      "port": 3306
+    },
+    {
+      "src": "file01",
+      "dst": "jump01",
+      "port": 22
+    },
+    {
+      "src": "jump01",
+      "dst": "app01",
+      "port": 80
+    },
+    {
+      "src": "jump01",
+      "dst": "db01",
+      "port": 3306
+    },
+    {
+      "src": "jump01",
+      "dst": "file01",
+      "port": 80
+    },
+    {
+      "src": "jump01",
+      "dst": "web01",
+      "port": 80
+    },
+    {
+      "src": "web01",
+      "dst": "app01",
+      "port": 80
+    },
+    {
+      "src": "web01",
+      "dst": "decoy01",
+      "port": 80
+    },
+    {
+      "src": "web01",
+      "dst": "jump01",
+      "port": 22
+    }
   ],
-  "notes": ["SYNTHETIC MOCK DATA — each row models shared-network reachability plus an open destination port; it is not a real scan."]
+  "notes": [
+    "SYNTHETIC MOCK DATA \u2014 parser-derived from data/mock/scanner-format/lab_a; each row reflects declared shared-network membership plus an open destination port. Not a real scan."
+  ]
 }
