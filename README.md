@@ -2,7 +2,7 @@
 
 A four-person security automation prototype that prioritizes vulnerability remediation by **whether a finding blocks an attack path to a critical asset**, not by severity score alone. The system builds an attack graph from scan and reachability data, challenges scanner findings with evidence, and proposes a low-cost set of patches. It then verifies that the proposed plan leaves no modeled path from an entry point to a crown jewel.
 
-> **Project status:** This repository is being built in parallel by the team. The lab, ingestion scripts, shared contracts, mock inputs, and tests are the current foundation. Graph/optimizer, Skeptic/report, API/UI, and demo modules are added by their owners as integration progresses.
+> **Project status:** Person 1's lab/ingestion and Person 2's enrichment/graph/optimizer/verification modules are present. Person 3's Skeptic/report and Person 4's API/UI/demo modules are still separate team deliverables. The mock pipeline and P1→P2 integration tests are available now.
 
 ## Why this project
 
@@ -56,3 +56,59 @@ scan.json + reach.json  →  enriched findings  →  verdicts.json
 
 **Important:** A Trivy image/package CVE is evidence that a package in an image may be vulnerable; it is not by itself proof of a remotely reachable service vulnerability. In the current ingestion output, `port: 0` means no service port has been justified for that raw finding. The Skeptic/graph pipeline must check package/version evidence and service context before turning it into an attack-graph edge.
 
+
+## Person 2 core modules
+
+The enrichment, graph, optimization, verification, and P1→P2 handoff modules live in `core/`.
+Run the complete local test suite, including the P1→P2 integration tests, with:
+
+```bash
+python -m pip install -r requirements.txt
+python -m pytest -q
+```
+
+On Windows PowerShell with the project's Python 3.13 virtual environment, use:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
+```
+
+`core.enrich.enrich_scan(scan, offline=True)` uses existing JSON files in `cache/`
+without making network requests. Online mode fetches NVD CVE details, the CISA KEV
+catalog, and FIRST EPSS scores, then caches each response. `offline=False` is the
+default; `offline=True` is recommended for a repeatable demo.
+
+To combine a P1 mock scan and reachability file with P2 enrichment, run:
+
+```powershell
+.\.venv\Scripts\python.exe -m core.pipeline --lab lab_a --mock --offline
+```
+
+This writes `data/processed/lab_a/findings.json`, preserving the P1 assets,
+services, and reach records while attaching any cached enrichment. To process a
+real scan from `data/scans/lab_a/`, omit `--mock`. Omit `--offline` only when you
+want P2 to make live enrichment requests. The document is marked
+`awaiting_skeptic_review`; it is not yet a confirmed attack graph or patch plan.
+
+`core.graph.build_attack_graph(assets, reach, findings, verdicts)` implements the
+guide's edge rule. If verdicts are supplied, only `confirmed` and `downgraded`
+findings are accepted. A finding must be remotely exploitable and have a real
+service port matching the destination reachability record. In particular, the
+ingestion contract's `port: 0` and `suggested_ports` are not proof of service
+attribution and are not converted into graph edges. This protects the graph from
+turning image/package evidence into an unsupported network exploit claim.
+
+The optimizer enumerates simple entry-point-to-crown-jewel paths with an 8-hop
+default cap, solves the minimum-cost patch hitting-set with PuLP when available,
+and falls back to a deterministic greedy method. `core.verify.verify_plan` then
+independently applies the patches to a graph copy and checks that no bounded
+attack paths remain. The shared `contracts/models.py` is unchanged.
+
+`core.pipeline.run_verified_planner(...)` is the integration entry point for
+port-specific `Finding` objects and their P3 `Verdict` objects. It refuses to
+plan if verdicts are missing. Its P1/P2 integration tests use the included mock
+reachability records plus explicitly synthetic, reviewed findings to check that
+Lab A and Lab B each produce a path, choose a low-cost patch, and verify zero
+remaining paths. These fixtures test the integration seam; they are not scanner
+evidence. An end-to-end real-scan-to-plan run still requires Person 3 to provide
+the reviewed findings and verdicts.

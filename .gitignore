@@ -8,8 +8,13 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
-# Real scan artifacts and downloaded scanner databases; mock data is committed.
+# Generated scan outputs and locally enriched handoff files.
 data/scans/
 data/raw/
+data/processed/
+
+# Downloaded scanner and enrichment caches; keep only cache/.gitkeep.
 .cache/
 trivy-cache/
+cache/*
+!cache/.gitkeep
