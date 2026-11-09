@@ -1,0 +1,131 @@
+{
+  "lab_id": "lab_a",
+  "synthetic": true,
+  "notes": [
+    "SYNTHETIC SCANNER-FORMAT FIXTURE ONLY; generated from mock JSON, not a real Nmap, Trivy, Docker, or network scan."
+  ],
+  "assets": [
+    {
+      "id": "web01",
+      "ip": "172.20.0.2",
+      "interfaces": {
+        "internet_facing": "172.20.0.2",
+        "dmz": "172.21.0.2"
+      },
+      "zone": "internet",
+      "criticality": 8,
+      "is_crown_jewel": false,
+      "is_entry_point": true,
+      "image": "synthetic-web01:mock",
+      "networks": [
+        "internet_facing",
+        "dmz"
+      ]
+    },
+    {
+      "id": "app01",
+      "ip": "172.21.0.2",
+      "interfaces": {
+        "dmz": "172.21.0.4",
+        "internal": "172.22.0.4"
+      },
+      "zone": "dmz",
+      "criticality": 7,
+      "is_crown_jewel": false,
+      "is_entry_point": false,
+      "image": "synthetic-app01:mock",
+      "networks": [
+        "dmz",
+        "internal"
+      ]
+    },
+    {
+      "id": "db01",
+      "ip": "172.22.0.2",
+      "interfaces": {
+        "internal": "172.22.0.2"
+      },
+      "zone": "internal",
+      "criticality": 10,
+      "is_crown_jewel": true,
+      "is_entry_point": false,
+      "image": "synthetic-db01:mock",
+      "networks": [
+        "internal"
+      ]
+    },
+    {
+      "id": "file01",
+      "ip": "172.22.0.3",
+      "interfaces": {
+        "internal": "172.22.0.3"
+      },
+      "zone": "internal",
+      "criticality": 5,
+      "is_crown_jewel": false,
+      "is_entry_point": false,
+      "image": "synthetic-file01:mock",
+      "networks": [
+        "internal"
+      ]
+    },
+    {
+      "id": "jump01",
+      "ip": "172.21.0.3",
+      "interfaces": {
+        "dmz": "172.21.0.3",
+        "internal": "172.22.0.5"
+      },
+      "zone": "dmz",
+      "criticality": 6,
+      "is_crown_jewel": false,
+      "is_entry_point": false,
+      "image": "synthetic-jump01:mock",
+      "networks": [
+        "dmz",
+        "internal"
+      ]
+    },
+    {
+      "id": "decoy01",
+      "ip": "172.20.0.3",
+      "interfaces": {
+        "internet_facing": "172.20.0.3"
+      },
+      "zone": "internet",
+      "criticality": 1,
+      "is_crown_jewel": false,
+      "is_entry_point": false,
+      "image": "synthetic-decoy01:mock",
+      "networks": [
+        "internet_facing"
+      ]
+    }
+  ],
+  "networks": {
+    "internet_facing": {
+      "docker_name": "synthetic_lab_a_internet_facing",
+      "asset_ids": [
+        "decoy01",
+        "web01"
+      ]
+    },
+    "dmz": {
+      "docker_name": "synthetic_lab_a_dmz",
+      "asset_ids": [
+        "app01",
+        "jump01",
+        "web01"
+      ]
+    },
+    "internal": {
+      "docker_name": "synthetic_lab_a_internal",
+      "asset_ids": [
+        "app01",
+        "db01",
+        "file01",
+        "jump01"
+      ]
+    }
+  }
+}

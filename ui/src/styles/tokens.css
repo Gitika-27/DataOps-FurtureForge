@@ -1,0 +1,127 @@
+@import "@fontsource/geist-sans";
+@import "@fontsource/geist-mono";
+@import "@fontsource/instrument-serif";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --paper: #F4F2EC;
+  --surface: #FFFEFA;
+  --surface-2: #ECEAE2;
+  --line: #DADCD3;
+  --line-strong: #C5C8BD;
+  
+  --ink: #1B2420;
+  --ink-2: #5B6762;
+  --ink-3: #8B948E;
+  
+  --copper: #B8622F;
+  --copper-stage: #E08A55;
+  
+  --stage-bg: #0E1419;
+  --stage-surface: #141C23;
+  --stage-card: #1B2530;
+  --stage-text: #E7ECEF;
+  --stage-text-2: #93A1AB;
+  --stage-line: rgba(255, 255, 255, 0.08);
+  
+  --threat: #C8372D;
+  --threat-stage: #FF5C50;
+  
+  --verified: #1F8A5F;
+  --verified-stage: #3DDC97;
+  
+  --caution: #B7791F;
+  --caution-stage: #F2B33D;
+  
+  --crown: #E8C872;
+}
+
+/* Tabular numerals for all numeric displays */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Paper grain micro-texture overlay */
+.paper-grain {
+  background-image: radial-gradient(rgba(27, 36, 32, 0.04) 1px, transparent 1px);
+  background-size: 16px 16px;
+}
+
+/* Technical 24px grid on dark stage */
+.stage-grid {
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Corner registration marks */
+.corner-ticks {
+  position: relative;
+}
+.corner-ticks::before,
+.corner-ticks::after {
+  content: "";
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-color: var(--line-strong);
+  pointer-events: none;
+}
+.corner-ticks::before {
+  top: 4px;
+  left: 4px;
+  border-top: 1px solid;
+  border-left: 1px solid;
+}
+.corner-ticks::after {
+  bottom: 4px;
+  right: 4px;
+  border-bottom: 1px solid;
+  border-right: 1px solid;
+}
+
+/* Signature Status Stamps */
+.stamp {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono, monospace);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.25rem 0.65rem;
+  border-radius: 4px;
+  border: 2px solid;
+  transform: rotate(-2deg);
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.05);
+  animation: stamp-press 320ms cubic-bezier(.22, 1, .36, 1) forwards;
+}
+
+.stamp-verified {
+  border-color: #1F8A5F;
+  color: #1F8A5F;
+  background-color: rgba(31, 138, 95, 0.08);
+}
+
+.stamp-no-paths {
+  border-color: #B7791F;
+  color: #B7791F;
+  background-color: rgba(183, 121, 31, 0.08);
+}
+
+.stamp-invalid {
+  border-color: #C8372D;
+  color: #C8372D;
+  background-color: rgba(200, 55, 45, 0.08);
+}
+
+.stamp-synthetic {
+  border-color: #B8622F;
+  color: #B8622F;
+  background-color: rgba(184, 98, 47, 0.08);
+}

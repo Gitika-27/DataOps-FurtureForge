@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "lab_id": "lab_a",
+  "generated_at": "mock",
+  "assets": [
+    {"id": "web01", "ip": "172.20.0.2", "zone": "internet", "criticality": 8, "is_crown_jewel": false, "is_entry_point": true},
+    {"id": "app01", "ip": "172.21.0.2", "zone": "dmz", "criticality": 7, "is_crown_jewel": false, "is_entry_point": false},
+    {"id": "db01", "ip": "172.22.0.2", "zone": "internal", "criticality": 10, "is_crown_jewel": true, "is_entry_point": false},
+    {"id": "file01", "ip": "172.22.0.3", "zone": "internal", "criticality": 5, "is_crown_jewel": false, "is_entry_point": false},
+    {"id": "jump01", "ip": "172.21.0.3", "zone": "dmz", "criticality": 6, "is_crown_jewel": false, "is_entry_point": false},
+    {"id": "decoy01", "ip": "172.20.0.3", "zone": "internet", "criticality": 1, "is_crown_jewel": false, "is_entry_point": false}
+  ],
+  "interfaces": {
+    "web01": {"internet_facing": "172.20.0.2", "dmz": "172.21.0.2"},
+    "app01": {"dmz": "172.21.0.4", "internal": "172.22.0.4"},
+    "db01": {"internal": "172.22.0.2"},
+    "file01": {"internal": "172.22.0.3"},
+    "jump01": {"dmz": "172.21.0.3", "internal": "172.22.0.5"},
+    "decoy01": {"internet_facing": "172.20.0.3"}
+  },
+  "services": [
+    {"asset_id": "web01", "port": 80, "name": "http", "version": "nginx 1.21.6"},
+    {"asset_id": "app01", "port": 80, "name": "http", "version": "Apache httpd 2.4.54"},
+    {"asset_id": "db01", "port": 3306, "name": "mysql", "version": "MariaDB 10.6.18"},
+    {"asset_id": "file01", "port": 80, "name": "http", "version": "Apache httpd 2.4.49"},
+    {"asset_id": "jump01", "port": 22, "name": "tcpwrapped", "version": "unknown"},
+    {"asset_id": "decoy01", "port": 80, "name": "http", "version": "nginx 1.21.6"}
+  ],
+  "raw_findings": [
+    {
+      "id": "file01:CVE-2021-41773:apache-httpd",
+      "asset_id": "file01",
+      "port": 0,
+      "port_context": "image-level; no network port attribution",
+      "suggested_ports": [80],
+      "cve": "CVE-2021-41773",
+      "cvss": 7.5,
+      "severity": "HIGH",
+      "package_name": "apache-httpd",
+      "installed_version": "2.4.49",
+      "fixed_version": "2.4.51",
+      "title": "Apache HTTP Server path traversal vulnerability (synthetic demo association)",
+      "source": "mock",
+      "remote_exploitable": null,
+      "raw_note": "Mock-only association for pipeline testing; validate version and applicability before treating as real."
+    },
+    {
+      "id": "decoy01:CVE-2021-23017:nginx",
+      "asset_id": "decoy01",
+      "port": 0,
+      "port_context": "image-level; no network port attribution",
+      "suggested_ports": [80],
+      "cve": "CVE-2021-23017",
+      "cvss": 7.7,
+      "severity": "HIGH",
+      "package_name": "nginx",
+      "installed_version": "1.21.6",
+      "fixed_version": "1.21.7",
+      "title": "nginx resolver vulnerability (synthetic demo association)",
+      "source": "mock",
+      "remote_exploitable": null,
+      "raw_note": "Mock-only decoy finding; it is intentionally not on a path to the crown jewel."
+    }
+  ],
+  "notes": ["SYNTHETIC MOCK DATA — not from a real scanner run.", "For a Trivy image finding, port 0 means the package CVE has not been attributed to a specific service port."]
+}

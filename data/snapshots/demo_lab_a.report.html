@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Patch Min-Cut Planner — lab_a report</title>
+  <style>
+    @page { size: A4; margin: 16mm; }
+    :root { color-scheme: light; }
+    body { font-family: Arial, Helvetica, sans-serif; color: #172033; margin: 0 auto; max-width: 900px; font-size: 10pt; line-height: 1.45; }
+    header { border-bottom: 4px solid #245b8f; padding: 0 0 14px; margin-bottom: 20px; }
+    h1 { margin: 0 0 4px; font-size: 24pt; color: #123553; }
+    h2 { margin: 22px 0 8px; font-size: 15pt; color: #123553; border-bottom: 1px solid #d7e0e8; padding-bottom: 4px; }
+    h3 { margin: 12px 0 4px; font-size: 11pt; }
+    .meta, .muted { color: #536477; }
+    .banner { padding: 10px 12px; border-radius: 4px; margin: 12px 0; background: #edf4fb; border-left: 4px solid #245b8f; }
+    .banner.warning { background: #fff5e6; border-color: #d17b00; }
+    .banner.success { background: #eaf7ef; border-color: #238344; }
+    .metrics { display: flex; gap: 10px; margin: 14px 0; }
+    .metric { border: 1px solid #d7e0e8; border-radius: 5px; padding: 10px; flex: 1; min-width: 100px; }
+    .metric strong { display: block; font-size: 19pt; color: #123553; }
+    table { border-collapse: collapse; width: 100%; margin: 8px 0 14px; }
+    th, td { border: 1px solid #d7e0e8; padding: 7px 8px; text-align: left; vertical-align: top; }
+    th { background: #f1f5f8; color: #193b58; }
+    .badge { display: inline-block; border-radius: 3px; padding: 2px 6px; background: #edf4fb; font-weight: bold; text-transform: uppercase; font-size: 8pt; }
+    .confirmed { color: #176b38; background: #e8f5ec; }
+    .downgraded { color: #8a5700; background: #fff2d8; }
+    .rejected { color: #9d2b2b; background: #fdeaea; }
+    ul { margin: 4px 0 8px; padding-left: 18px; }
+    li { margin: 2px 0; }
+    .small { font-size: 8.5pt; }
+    footer { margin-top: 24px; border-top: 1px solid #d7e0e8; padding-top: 8px; color: #536477; font-size: 8pt; }
+    .no-break { page-break-inside: avoid; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Patch Min-Cut Planner</h1>
+  <div class="meta">Skeptic review and verified remediation report · lab_a · Generated 2026-11-09T11:06:05+00:00</div>
+</header>
+
+
+<div class="banner success"><strong>Plan verified:</strong> the modeled entry-point-to-crown-jewel paths are cut by the selected patches. This is limited to the supplied evidence and graph rules.</div>
+
+
+<div class="metrics">
+  <div class="metric"><strong>1</strong>modeled paths before</div>
+  <div class="metric"><strong>0</strong>modeled paths after</div>
+  <div class="metric"><strong>1</strong>selected patches</div>
+  <div class="metric"><strong>2</strong>confirmed · 0 downgraded · 0 rejected</div>
+</div>
+
+<h2>Summary</h2>
+<p>The optimizer selected 1 patch(es); independent verification reduced modeled paths from 1 to 0.</p>
+<p class="muted small">Risk reduction shown: 100.0%. The path count is bounded to simple paths of at most 8 hops and depends on the supplied lab topology.</p>
+
+<h2>Selected patch plan</h2>
+
+<table>
+  <thead><tr><th>Patch ID</th><th>Estimated cost</th><th>Related findings and evidence</th></tr></thead>
+  <tbody>
+  
+  <tr class="no-break"><td><strong>demo-db-fix</strong></td><td>1</td><td>
+    <ul><li><strong>demo-db:CVE-2099-90002:mariadb</strong> — Confirmed for graph use only because the installed version matches an observed, reachable service, NVD CPE data marks the version affected, and NVD identifies AV:N.<ul><li>Scanner reports installed version 10.6.18 and fixed version 10.6.19.</li><li>Nmap observed mysql on db01:3306 (MariaDB 10.6.18).</li><li>Topology records 3 source(s) able to reach db01:3306.</li><li>NVD vulnerable CPE version range includes the installed version.</li><li>NVD CVSS vector identifies network attack vector (AV:N).</li></ul></li></ul>
+  </td></tr>
+  
+  </tbody>
+</table>
+
+
+<h2>Rejected findings</h2>
+<p>No findings were rejected by the deterministic review.</p>
+
+<h2>Finding review ledger</h2>
+<table>
+  <thead><tr><th>Finding</th><th>Status</th><th>Confidence</th><th>Reasoning</th></tr></thead>
+  <tbody><tr class="no-break"><td>demo-app:CVE-2099-90001:apache-httpd</td><td><span class="badge confirmed">confirmed</span></td><td>94%</td><td>Confirmed for graph use only because the installed version matches an observed, reachable service, NVD CPE data marks the version affected, and NVD identifies AV:N.<ul><li>Scanner reports installed version 2.4.54 and fixed version 2.4.55.</li><li>Nmap observed http on app01:80 (Apache httpd 2.4.54).</li><li>Topology records 1 source(s) able to reach app01:80.</li><li>NVD vulnerable CPE version range includes the installed version.</li><li>NVD CVSS vector identifies network attack vector (AV:N).</li></ul></td></tr><tr class="no-break"><td>demo-db:CVE-2099-90002:mariadb</td><td><span class="badge confirmed">confirmed</span></td><td>94%</td><td>Confirmed for graph use only because the installed version matches an observed, reachable service, NVD CPE data marks the version affected, and NVD identifies AV:N.<ul><li>Scanner reports installed version 10.6.18 and fixed version 10.6.19.</li><li>Nmap observed mysql on db01:3306 (MariaDB 10.6.18).</li><li>Topology records 3 source(s) able to reach db01:3306.</li><li>NVD vulnerable CPE version range includes the installed version.</li><li>NVD CVSS vector identifies network attack vector (AV:N).</li></ul></td></tr></tbody>
+</table>
+
+<h2>Limitations</h2>
+<ul><li>This report was generated from synthetic mock data; do not interpret it as a real network assessment.</li><li>The tool reasons from scan evidence and deterministic rules; it does not exploit vulnerabilities and cannot prove exploitability.</li><li>Package/image findings are not treated as service vulnerabilities unless an observed service and exact installed version can be matched; suggested ports alone are not proof.</li><li>Only NVD affected-CPE version data plus an NVD network attack vector can confirm a remotely exploitable graph finding; unavailable or unmatched metadata is downgraded.</li><li>Paths are simple paths bounded to 8 hops. Results depend on the supplied network reachability and entry-point/crown-jewel labels.</li><li>Patch costs are effort heuristics, not measured work estimates. A verified result means all modeled paths are cut, not that the real environment is safe.</li><li>SYNTHETIC DEMO FIXTURE ONLY. Not scanner output, not a real CVE, not real NVD data, and not an assessment of a real system. Uses explicitly fabricated future CVE identifiers to demonstrate the graph and patch planner.</li></ul>
+<footer>Generated by the Patch Min-Cut Planner prototype. No exploit was run. Findings, topology, version matching, patch costs, and path enumeration are evidence-bounded and may be incomplete.</footer>
+</body>
+</html>

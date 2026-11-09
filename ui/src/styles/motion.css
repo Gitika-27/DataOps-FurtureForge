@@ -1,0 +1,150 @@
+:root {
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  
+  --dur-fast: 140ms;
+  --dur-base: 240ms;
+  --dur-medium: 420ms;
+  --dur-slow: 680ms;
+  --dur-choreography: 1100ms;
+}
+
+/* Stamp pressing into place with scale bounce */
+@keyframes stamp-press {
+  0% {
+    transform: rotate(-2deg) scale(1.15);
+    opacity: 0;
+  }
+  70% {
+    transform: rotate(-2deg) scale(0.96);
+    opacity: 1;
+  }
+  100% {
+    transform: rotate(-2deg) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Crown Jewel slow breathing glow */
+@keyframes crown-breathe {
+  0%, 100% {
+    box-shadow: 0 0 12px rgba(232, 200, 114, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 24px rgba(232, 200, 114, 0.65);
+  }
+}
+
+/* Card pointer sheen */
+.sheen-card {
+  position: relative;
+  overflow: hidden;
+  transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+}
+
+.sheen-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle 320px at var(--mouse-x, -100%) var(--mouse-y, -100%),
+    rgba(255, 255, 255, 0.08),
+    transparent 80%
+  );
+  opacity: 0;
+  transition: opacity var(--dur-fast) ease;
+}
+
+.sheen-card:hover::after {
+  opacity: 1;
+}
+
+/* Inspector fold-out right edge hinge */
+.inspector-fold {
+  transform-origin: right center;
+  transition: transform var(--dur-medium) var(--ease-out), opacity var(--dur-medium) var(--ease-out);
+}
+
+.inspector-fold-enter {
+  transform: perspective(1200px) rotateY(-8deg);
+  opacity: 0;
+}
+
+.inspector-fold-active {
+  transform: perspective(1200px) rotateY(0deg);
+  opacity: 1;
+}
+
+/* Limitations modal unfold-top */
+@keyframes unfold-from-top {
+  0% {
+    transform: perspective(1200px) rotateX(10deg) translateY(-16px);
+    opacity: 0;
+  }
+  100% {
+    transform: perspective(1200px) rotateX(0deg) translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-unfold-top {
+  transform-origin: top center;
+  animation: unfold-from-top var(--dur-medium) var(--ease-out) forwards;
+}
+
+/* View transitions perspective fold */
+::view-transition-old(root) {
+  animation: 300ms var(--ease-in-out) both vt-fade-out;
+}
+::view-transition-new(root) {
+  animation: 300ms var(--ease-out) both vt-fade-in;
+}
+
+@keyframes vt-fade-out {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.98);
+  }
+}
+
+@keyframes vt-fade-in {
+  from {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Reduced motion honoring (Law 4 & Section 8) */
+@media (prefers-reduced-motion: reduce) {
+  html, html * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .stamp {
+    transform: rotate(0deg) !important;
+  }
+}
+
+html[data-motion="reduced"],
+html[data-motion="reduced"] * {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+  transform: none !important;
+}
+
+html[data-motion="reduced"] .stamp {
+  transform: rotate(0deg) !important;
+}

@@ -1,0 +1,30 @@
+{
+  "SchemaVersion": 2,
+  "ArtifactName": "synthetic-file01:mock",
+  "ArtifactType": "container_image",
+  "Results": [
+    {
+      "Target": "synthetic-file01:mock",
+      "Type": "alpine",
+      "Vulnerabilities": [
+        {
+          "VulnerabilityID": "CVE-2021-41773",
+          "PkgName": "apache-httpd",
+          "InstalledVersion": "2.4.49",
+          "FixedVersion": "2.4.51",
+          "Severity": "HIGH",
+          "Title": "Apache HTTP Server path traversal vulnerability (synthetic demo association)",
+          "PrimaryURL": "https://example.invalid/CVE-2021-41773",
+          "CVSS": {
+            "nvd": {
+              "V3Score": 7.5
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "Notes": [
+    "SYNTHETIC FIXTURE ONLY. Not output from Trivy or a real scan."
+  ]
+}

@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Patch Min-Cut Planner report</title>
+<style>
+@page { size: A4; margin: 8mm; }
+body { font-family: Helvetica, Arial, sans-serif; font-size: 7.2pt; line-height: 1.16; color: #172033; }
+h1 { font-size: 15pt; color: #123553; margin: 0 0 2pt; }
+h2 { font-size: 9pt; color: #123553; border-bottom: 0.5pt solid #b8c6d4; margin: 6pt 0 2pt; padding-bottom: 1pt; }
+p { margin: 2pt 0; }
+.small { font-size: 6.3pt; color: #536477; }
+.banner { padding: 4pt; background: #edf4fb; border-left: 3pt solid #245b8f; margin: 4pt 0; }
+.warning { background: #fff5e6; border-left-color: #d17b00; }
+.success { background: #eaf7ef; border-left-color: #238344; }
+table { width: 100%; border-collapse: collapse; margin: 2pt 0 3pt; }
+th, td { border: 0.4pt solid #cbd5df; padding: 2pt 3pt; vertical-align: top; }
+th { background: #f1f5f8; color: #193b58; font-weight: bold; }
+.metrics td { text-align: center; font-weight: bold; font-size: 8pt; }
+.status { font-weight: bold; text-transform: uppercase; }
+ul { margin: 1pt 0 1pt 12pt; padding: 0; }
+li { margin: 1pt 0; }
+footer { border-top: 0.5pt solid #b8c6d4; margin-top: 4pt; padding-top: 2pt; font-size: 6pt; color: #536477; }
+</style>
+</head>
+<body>
+<h1>Patch Min-Cut Planner</h1>
+<p class="small">Skeptic review and remediation summary | {{ lab_id }} | {{ generated_at }}</p>
+{% if status == "verified" %}
+<div class="banner success"><b>VERIFIED MODEL PLAN.</b> Independent verification leaves zero modeled entry-to-crown paths. This is evidence-bounded, not proof that the real environment is safe.</div>
+{% elif status == "no_modeled_paths" %}
+<div class="banner warning"><b>NO MODELED PATHS.</b> This is not proof of safety; check scan coverage, labels, reachability, and enrichment.</div>
+{% else %}
+<div class="banner warning"><b>STATUS: {{ status }}.</b> Do not use as a verified remediation plan.</div>
+{% endif %}
+<table class="metrics"><tr><td>Paths before<br>{{ paths_before }}</td><td>Paths after<br>{{ paths_after }}</td><td>Measured reduction<br>{{ "%.1f"|format(risk_reduction_pct) }}%</td><td>Patches<br>{{ patches|length }}</td><td>Confirmed / downgraded / rejected<br>{{ verdict_counts.confirmed }} / {{ verdict_counts.downgraded }} / {{ verdict_counts.rejected }}</td></tr></table>
+<p>{{ summary }}</p>
+{% if synthetic %}<p><b>SYNTHETIC DATA ONLY.</b> Not real scan evidence or a real-world assessment.</p>{% endif %}
+<h2>Selected patches and evidence</h2>
+{% if patches %}
+<table><tr><th>Patch / cost</th><th>Related finding and deterministic evidence</th></tr>
+{% for patch in patches %}<tr><td><b>{{ patch.id }}</b><br>Cost: {{ patch.cost }}</td><td>{% for item in patch.findings %}<b>{{ item.finding_id }}</b>: {{ item.reasoning }}<br>{{ item.evidence|join("; ") }}{% if not loop.last %}<br>{% endif %}{% endfor %}</td></tr>{% endfor %}
+</table>
+{% else %}<p>No patch was selected for this run.</p>{% endif %}
+<h2>Rejected findings and reasons</h2>
+{% if rejected %}<table><tr><th>Finding</th><th>Reason</th><th>Evidence</th></tr>{% for item in rejected %}<tr><td>{{ item.finding_id }}</td><td>{{ item.reasoning }}</td><td>{{ item.evidence|join("; ") }}</td></tr>{% endfor %}</table>{% else %}<p>None.</p>{% endif %}
+<h2>Finding verdicts</h2>
+<table><tr><th>Finding</th><th>Verdict / confidence</th><th>Reason and evidence summary</th></tr>{% for item in verdicts %}<tr><td>{{ item.finding_id }}</td><td class="status">{{ item.status }}<br>{{ "%.0f"|format(item.confidence * 100) }}%</td><td>{{ item.reasoning }}<br>{{ item.evidence|join("; ") }}</td></tr>{% endfor %}</table>
+<h2>Limitations</h2>
+<ul>
+<li>No exploits are run; scanner evidence and deterministic triage cannot prove exploitability.</li>
+<li>Package CVEs require exact observed service/version attribution; suggested ports are not proof. Missing NVD CPE or network-vector data is downgraded.</li>
+<li>Paths are simple and capped at {{ max_hops }} hops; topology/entry/crown labels may be incomplete. Patch cost is a heuristic. A verified plan cuts modeled paths only.</li>
+{% for item in limitations %}{% if "synthetic" in item|lower and not loop.first %}<li>{{ item }}</li>{% endif %}{% endfor %}
+</ul>
+<footer>No exploit was run. Review the accompanying report.html for the complete evidence ledger and limitations.</footer>
+</body>
+</html>

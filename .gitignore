@@ -1,0 +1,26 @@
+.venv/
+__pycache__/
+.pytest_cache/
+*.py[cod]
+.env
+.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+
+# Generated scan outputs and locally enriched handoff files.
+data/scans/
+data/raw/
+data/processed/
+data/runs/
+
+# Frontend dependencies and cache
+ui/node_modules/
+ui/.vite/
+*.tsbuildinfo
+
+# Downloaded scanner and enrichment caches; keep only cache/.gitkeep.
+.cache/
+trivy-cache/
+cache/*
+!cache/.gitkeep

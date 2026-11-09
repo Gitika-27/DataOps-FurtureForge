@@ -1,0 +1,458 @@
+{
+  "run_id": "00000000000000000000000000000001",
+  "lab": "lab_a",
+  "mode": "demo",
+  "source": "snapshot",
+  "status": "verified",
+  "error": null,
+  "synthetic": true,
+  "notes": [
+    "SYNTHETIC DEMO FIXTURE ONLY. Not scanner output, not a real CVE, not real NVD data, and not an assessment of a real system. Uses explicitly fabricated future CVE identifiers to demonstrate the graph and patch planner."
+  ],
+  "created_at": "2026-11-09T11:06:09.315546+00:00",
+  "assets": [
+    {
+      "id": "web01",
+      "ip": "172.20.0.2",
+      "zone": "internet",
+      "criticality": 8,
+      "is_crown_jewel": false,
+      "is_entry_point": true
+    },
+    {
+      "id": "app01",
+      "ip": "172.21.0.2",
+      "zone": "dmz",
+      "criticality": 7,
+      "is_crown_jewel": false,
+      "is_entry_point": false
+    },
+    {
+      "id": "db01",
+      "ip": "172.22.0.2",
+      "zone": "internal",
+      "criticality": 10,
+      "is_crown_jewel": true,
+      "is_entry_point": false
+    },
+    {
+      "id": "file01",
+      "ip": "172.22.0.3",
+      "zone": "internal",
+      "criticality": 5,
+      "is_crown_jewel": false,
+      "is_entry_point": false
+    },
+    {
+      "id": "jump01",
+      "ip": "172.21.0.3",
+      "zone": "dmz",
+      "criticality": 6,
+      "is_crown_jewel": false,
+      "is_entry_point": false
+    },
+    {
+      "id": "decoy01",
+      "ip": "172.20.0.3",
+      "zone": "internet",
+      "criticality": 1,
+      "is_crown_jewel": false,
+      "is_entry_point": false
+    }
+  ],
+  "services": [
+    {
+      "asset_id": "web01",
+      "port": 80,
+      "name": "http",
+      "version": "nginx 1.21.6"
+    },
+    {
+      "asset_id": "app01",
+      "port": 80,
+      "name": "http",
+      "version": "Apache httpd 2.4.54"
+    },
+    {
+      "asset_id": "db01",
+      "port": 3306,
+      "name": "mysql",
+      "version": "MariaDB 10.6.18"
+    },
+    {
+      "asset_id": "file01",
+      "port": 80,
+      "name": "http",
+      "version": "Apache httpd 2.4.49"
+    },
+    {
+      "asset_id": "jump01",
+      "port": 22,
+      "name": "tcpwrapped",
+      "version": "unknown"
+    },
+    {
+      "asset_id": "decoy01",
+      "port": 80,
+      "name": "http",
+      "version": "nginx 1.21.6"
+    }
+  ],
+  "reach": [
+    {
+      "src": "web01",
+      "dst": "app01",
+      "port": 80
+    },
+    {
+      "src": "web01",
+      "dst": "jump01",
+      "port": 22
+    },
+    {
+      "src": "app01",
+      "dst": "db01",
+      "port": 3306
+    },
+    {
+      "src": "app01",
+      "dst": "file01",
+      "port": 80
+    },
+    {
+      "src": "app01",
+      "dst": "jump01",
+      "port": 22
+    },
+    {
+      "src": "jump01",
+      "dst": "db01",
+      "port": 3306
+    },
+    {
+      "src": "jump01",
+      "dst": "file01",
+      "port": 80
+    },
+    {
+      "src": "db01",
+      "dst": "file01",
+      "port": 80
+    },
+    {
+      "src": "file01",
+      "dst": "db01",
+      "port": 3306
+    },
+    {
+      "src": "web01",
+      "dst": "decoy01",
+      "port": 80
+    },
+    {
+      "src": "decoy01",
+      "dst": "web01",
+      "port": 80
+    }
+  ],
+  "raw_findings": [
+    {
+      "id": "demo-app:CVE-2099-90001:apache-httpd",
+      "asset_id": "app01",
+      "port": 0,
+      "port_context": "synthetic image evidence for demonstration only",
+      "suggested_ports": [
+        80
+      ],
+      "cve": "CVE-2099-90001",
+      "cvss": 7.5,
+      "severity": "HIGH",
+      "package_name": "apache-httpd",
+      "installed_version": "2.4.54",
+      "fixed_version": "2.4.55",
+      "title": "SYNTHETIC DEMO ONLY \u2014 invented future CVE for graph demonstration",
+      "source": "synthetic-demo",
+      "remote_exploitable": null,
+      "patch_id": "demo-app-fix",
+      "patch_cost": 3,
+      "epss": 0.05,
+      "in_kev": false
+    },
+    {
+      "id": "demo-db:CVE-2099-90002:mariadb",
+      "asset_id": "db01",
+      "port": 0,
+      "port_context": "synthetic image evidence for demonstration only",
+      "suggested_ports": [
+        3306
+      ],
+      "cve": "CVE-2099-90002",
+      "cvss": 7.5,
+      "severity": "HIGH",
+      "package_name": "mariadb",
+      "installed_version": "10.6.18",
+      "fixed_version": "10.6.19",
+      "title": "SYNTHETIC DEMO ONLY \u2014 invented future CVE for graph demonstration",
+      "source": "synthetic-demo",
+      "remote_exploitable": null,
+      "patch_id": "demo-db-fix",
+      "patch_cost": 1,
+      "epss": 0.03,
+      "in_kev": false
+    }
+  ],
+  "verdicts": [
+    {
+      "finding_id": "demo-app:CVE-2099-90001:apache-httpd",
+      "status": "confirmed",
+      "confidence": 0.94,
+      "evidence": [
+        "Scanner reports installed version 2.4.54 and fixed version 2.4.55.",
+        "Nmap observed http on app01:80 (Apache httpd 2.4.54).",
+        "Topology records 1 source(s) able to reach app01:80.",
+        "NVD vulnerable CPE version range includes the installed version.",
+        "NVD CVSS vector identifies network attack vector (AV:N)."
+      ],
+      "reasoning": "Confirmed for graph use only because the installed version matches an observed, reachable service, NVD CPE data marks the version affected, and NVD identifies AV:N."
+    },
+    {
+      "finding_id": "demo-db:CVE-2099-90002:mariadb",
+      "status": "confirmed",
+      "confidence": 0.94,
+      "evidence": [
+        "Scanner reports installed version 10.6.18 and fixed version 10.6.19.",
+        "Nmap observed mysql on db01:3306 (MariaDB 10.6.18).",
+        "Topology records 3 source(s) able to reach db01:3306.",
+        "NVD vulnerable CPE version range includes the installed version.",
+        "NVD CVSS vector identifies network attack vector (AV:N)."
+      ],
+      "reasoning": "Confirmed for graph use only because the installed version matches an observed, reachable service, NVD CPE data marks the version affected, and NVD identifies AV:N."
+    }
+  ],
+  "reviewed_findings": [
+    {
+      "id": "demo-app:CVE-2099-90001:apache-httpd",
+      "asset_id": "app01",
+      "port": 80,
+      "cve": "CVE-2099-90001",
+      "cvss": 7.5,
+      "epss": 0.05,
+      "in_kev": false,
+      "remote_exploitable": true,
+      "patch_id": "demo-app-fix",
+      "patch_cost": 3
+    },
+    {
+      "id": "demo-db:CVE-2099-90002:mariadb",
+      "asset_id": "db01",
+      "port": 3306,
+      "cve": "CVE-2099-90002",
+      "cvss": 7.5,
+      "epss": 0.03,
+      "in_kev": false,
+      "remote_exploitable": true,
+      "patch_id": "demo-db-fix",
+      "patch_cost": 1
+    }
+  ],
+  "graph": {
+    "nodes": [
+      {
+        "id": "web01",
+        "ip": "172.20.0.2",
+        "zone": "internet",
+        "criticality": 8,
+        "is_entry_point": true,
+        "is_crown_jewel": false
+      },
+      {
+        "id": "app01",
+        "ip": "172.21.0.2",
+        "zone": "dmz",
+        "criticality": 7,
+        "is_entry_point": false,
+        "is_crown_jewel": false
+      },
+      {
+        "id": "db01",
+        "ip": "172.22.0.2",
+        "zone": "internal",
+        "criticality": 10,
+        "is_entry_point": false,
+        "is_crown_jewel": true
+      },
+      {
+        "id": "file01",
+        "ip": "172.22.0.3",
+        "zone": "internal",
+        "criticality": 5,
+        "is_entry_point": false,
+        "is_crown_jewel": false
+      },
+      {
+        "id": "jump01",
+        "ip": "172.21.0.3",
+        "zone": "dmz",
+        "criticality": 6,
+        "is_entry_point": false,
+        "is_crown_jewel": false
+      },
+      {
+        "id": "decoy01",
+        "ip": "172.20.0.3",
+        "zone": "internet",
+        "criticality": 1,
+        "is_entry_point": false,
+        "is_crown_jewel": false
+      }
+    ],
+    "edges": [
+      {
+        "src": "web01",
+        "dst": "app01",
+        "patch_id": "demo-app-fix",
+        "patch_ids": [
+          "demo-app-fix"
+        ],
+        "finding_ids": [
+          "demo-app:CVE-2099-90001:apache-httpd"
+        ],
+        "ports": [
+          80
+        ],
+        "patch_cost": 3,
+        "patch_costs": {
+          "demo-app-fix": 3
+        }
+      },
+      {
+        "src": "app01",
+        "dst": "db01",
+        "patch_id": "demo-db-fix",
+        "patch_ids": [
+          "demo-db-fix"
+        ],
+        "finding_ids": [
+          "demo-db:CVE-2099-90002:mariadb"
+        ],
+        "ports": [
+          3306
+        ],
+        "patch_cost": 1,
+        "patch_costs": {
+          "demo-db-fix": 1
+        }
+      },
+      {
+        "src": "file01",
+        "dst": "db01",
+        "patch_id": "demo-db-fix",
+        "patch_ids": [
+          "demo-db-fix"
+        ],
+        "finding_ids": [
+          "demo-db:CVE-2099-90002:mariadb"
+        ],
+        "ports": [
+          3306
+        ],
+        "patch_cost": 1,
+        "patch_costs": {
+          "demo-db-fix": 1
+        }
+      },
+      {
+        "src": "jump01",
+        "dst": "db01",
+        "patch_id": "demo-db-fix",
+        "patch_ids": [
+          "demo-db-fix"
+        ],
+        "finding_ids": [
+          "demo-db:CVE-2099-90002:mariadb"
+        ],
+        "ports": [
+          3306
+        ],
+        "patch_cost": 1,
+        "patch_costs": {
+          "demo-db-fix": 1
+        }
+      }
+    ]
+  },
+  "plan": {
+    "lab_id": "lab_a",
+    "status": "verified",
+    "warning": null,
+    "plan": {
+      "patches": [
+        "demo-db-fix"
+      ],
+      "paths_before": 1,
+      "paths_after": 0,
+      "risk_reduction_pct": 100.0
+    },
+    "verification": {
+      "valid": true,
+      "paths_before": 1,
+      "paths_after": 0,
+      "remaining_paths": []
+    },
+    "paths": [
+      [
+        "web01",
+        "app01",
+        "db01"
+      ]
+    ]
+  },
+  "skeptic_result": {
+    "status": "verified",
+    "warning": null,
+    "verdict_count": 2,
+    "graph_finding_count": 2,
+    "graph_node_count": 6,
+    "graph_edge_count": 4,
+    "paths_before": 1,
+    "paths_after": 0,
+    "patches": [
+      "demo-db-fix"
+    ],
+    "outputs": {
+      "verdicts": "C:\\Users\\PRANVE~1\\AppData\\Local\\Temp\\tmp4jm90fa4\\verdicts.json",
+      "findings": "C:\\Users\\PRANVE~1\\AppData\\Local\\Temp\\tmp4jm90fa4\\reviewed_findings.json",
+      "graph": "C:\\Users\\PRANVE~1\\AppData\\Local\\Temp\\tmp4jm90fa4\\graph.json",
+      "plan": "C:\\Users\\PRANVE~1\\AppData\\Local\\Temp\\tmp4jm90fa4\\plan.json",
+      "report_html": "C:\\Users\\PRANVE~1\\AppData\\Local\\Temp\\tmp4jm90fa4\\report.html",
+      "report_pdf": "C:\\Users\\PRANVE~1\\AppData\\Local\\Temp\\tmp4jm90fa4\\report.pdf"
+    }
+  },
+  "derived": {
+    "max_hops": 8,
+    "cut_edges": [
+      {
+        "src": "app01",
+        "dst": "db01"
+      },
+      {
+        "src": "file01",
+        "dst": "db01"
+      },
+      {
+        "src": "jump01",
+        "dst": "db01"
+      }
+    ],
+    "baseline": {
+      "candidate_patches": 2,
+      "candidate_cost": 4,
+      "plan_patches": 1,
+      "plan_cost": 1
+    }
+  },
+  "artifacts": {
+    "report_html": true,
+    "report_pdf": true
+  }
+}
