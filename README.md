@@ -1,282 +1,247 @@
-# Patch Min-Cut Planner + Skeptic Agent
+# FutureForge: Patch Min-Cut Planner + Skeptic Agent
+> **Don't patch everything. Cut the path.**
 
-A four-person cybersecurity automation prototype that prioritizes fixes by whether evidence supports an attacker path to a critical asset, rather than sorting by CVSS alone. It ingests a contained Docker lab, enriches scanner evidence, challenges findings, builds a bounded attack graph, selects a low-cost set of patches, verifies the modeled paths are cut, and generates an auditable report.
+An evidence-bounded cybersecurity platform that prioritizes remediation by whether verified evidence supports an attacker's path to a designated crown jewel, rather than triage based on CVSS severity alone.
 
-> **Project status:** Persons 1, 2, and 3 are integrated in this repository. Person 4 still owns the FastAPI service, React/Vite/Cytoscape UI, and final demo integration. The command-line pipeline and report work without Person 4's code.
+FutureForge combines scanner telemetry, network reachability, software identity checks, and an integer linear programming (ILP) optimizer to select the lowest-cost patch combination that interrupts all modeled attack vectors. The plan is then independently verified on a cloned graph copy before any remediation approval is stamped.
 
-## Why this project
+---
 
-A severe issue on an isolated host may be less urgent than a lower-scored issue that can be used to reach a database. The project combines scan evidence, network reachability, vulnerability metadata, and patch effort estimates to propose a small set of fixes. The optimizer is precisely a **minimum-cost patch hitting-set** problem: selected patches must intersect every modeled entry-point-to-crown-jewel path.
+## 1. Why FutureForge (The Operational Shift)
 
-## End-to-end workflow
+Conventional vulnerability management drowns engineering and security teams in hundreds of unranked CVSS alerts. A `CVSS 9.8` critical vulnerability on an isolated internal development container with no inbound network access poses zero immediate threat of external compromise. Conversely, a `CVSS 6.5` vulnerability on an edge-facing web server that provides lateral pivoting directly into a production database crown jewel represents an urgent risk.
 
-1. **Person 1 — Lab and ingest:** Docker Compose labs, Nmap open-service scan, Trivy image scan, normalized `scan.json` and `reach.json`.
-2. **Person 2 — Enrich:** Cache-first NVD, CISA KEV, and FIRST EPSS lookups. Preserve raw scanner evidence; do not infer a service port from `suggested_ports`.
-3. **Person 3 — Skeptic:** One Pydantic `Verdict` per input finding. Deterministic version, exact service/version, open port, topology reachability, NVD CPE range, network attack-vector, and explicitly supplied compensating-control checks run first. LLM use is optional and cannot add findings, invent evidence, or upgrade a rule-based verdict.
-4. **Person 2 — Graph and optimize:** Only a remotely exploitable finding with accepted verdict and matching reachability can produce a graph edge. The hitting-set optimizer uses PuLP with a deterministic greedy fallback.
-5. **Person 2 — Verify:** Apply chosen patches to a graph copy; a valid modeled plan must leave `paths_after == 0`.
-6. **Person 3 — Report:** Generate a detailed escaped Jinja2 HTML evidence ledger and an optional one-page PDF executive summary with before/after paths, patch evidence, rejected reasons, and limitations.
-7. **Person 4 — API/UI/demo:** Consume the JSON handoff outputs, add the API, visualization, and demo experience.
+FutureForge replaces unranked backlogs with **evidence-bounded path disruption**:
+1. **Evidence-Bounded Filtering:** A vulnerability only enters the attack graph if our deterministic Skeptic Agent confirms running service identity, open port reachability, and network attack vector applicability (AV:N).
+2. **Min-Cut Hitting Set Optimization:** We formulate remediation as an Integer Linear Program (ILP) solved via PuLP and CBC, calculating the exact minimal-cost patch cut that breaks all modeled attack paths.
+3. **Independent Verification:** Before stamping any plan, the engine constructs an isolated copy of the graph, removes edges whose required patches are selected, and mathematically asserts that `paths_after == 0`.
 
-## Team ownership and handoff
+---
 
-- **Person 1:** `lab/`, `ingest/`, `data/mock/`, `scan.json`, `reach.json`.
-- **Person 2:** `core/enrich.py`, `core/graph.py`, `core/optimize.py`, `core/verify.py`, `core/pipeline.py`.
-- **Person 3:** `skeptic/`, `report/`, and `tests/test_person3_skeptic_report.py`.
-- **Person 4:** `api/`, `ui/`, and final demo integration (not included yet).
+## 2. Key Features
 
-The frozen data models are in `contracts/models.py`: `Asset`, `Service`, `Finding`, `Verdict`, `Reach`, and `PatchPlan`. Coordinate with the team before changing any field names or types.
+- **Deterministic Skeptic Agent (`skeptic/`):**
+  Evaluates 6 concrete evidence requirements without executing live exploits: (1) target asset exists, (2) service identity and version match, (3) port observed open in Nmap, (4) topology reachability records an active path, (5) NVD CPE version applicability, and (6) NVD CVSS vector specifies Network (AV:N).
+- **Mathematical Min-Cut Optimizer (`core/optimize.py`):**
+  Binary program minimizing total patch operational cost such that every modeled simple path from an entry point to a crown jewel contains at least one fully patched edge. Features an automatic deterministic greedy fallback.
+- **Independent Graph Verifier (`core/verify.py`):**
+  Eliminates optimizer self-bias by verifying the plan on a freshly cloned graph copy. Proves that zero simple paths from entry points to crown jewels remain within the bounded 8-hop horizon.
+- **"The Evidence Atelier" UI (`ui/`):**
+  - **Zero Animation Libraries:** Built strictly compliant with Law 4 using pure CSS keyframes, `@starting-style`, a native Web Animations API (WAAPI) sequencer, and Cytoscape `.animate()`.
+  - **3-Tier Interactive Stage:** Physical depth slabs (*Internet*, *DMZ*, *Internal Core*) with mouse parallax, styled nodes, glowing attack paths, and knife-cut dashed glyphs.
+  - **7-Second Choreography:** Coordinated cut sequence with glint effects, counter roll-downs, and steady verified seal.
+  - **Interactive Sandboxes:** Diamond min-cut simulator, 6-stage assembly line explorer, real JSON specimen viewer, and keyboard shortcuts (`?`, `G`, `Space`, `F`, `1/2/3`).
+- **Complete Offline Resilience & Snapshot Fallback (`data/snapshots/`):**
+  Pre-compiled frontend bundle in `ui/dist/`, self-hosted typography (`@fontsource`), zero external CDN dependencies, and pre-baked snapshot replay fallback.
 
-```text
-P1 scan.json + reach.json
-          │
-          ▼
-P2 core.pipeline → enriched findings.json
-          │
-          ▼
-P3 skeptic.run_skeptic → verdicts + reviewed findings
-          │                     │
-          ├── P2 graph/optimizer/verifier → graph.json + plan.json
-          └── P3 report → report.html (+ optional report.pdf)
-                                │
-                                ▼
-                         P4 API and UI
-```
+---
 
-## Requirements
+## 3. Quick Start (1-Click Launch)
 
-- Python 3.11 or newer (the Windows steps below use Python 3.13).
-- Docker Desktop with its engine running only for real lab scans; included mock runs need no Docker.
-- Internet access for first-time Docker pulls or live enrichment. Cached/offline mock runs make no network requests.
+The project includes pre-compiled frontend assets in `ui/dist/`. **Node.js is not required** to run the complete platform.
 
-There is no separate CSV dataset. The Docker labs are the controlled scan target; mock JSON is committed for repeatable development. NVD/KEV/EPSS are enrichment sources, not a manual dataset download.
-
-## Windows PowerShell / VS Code quick start
-
-Open the **repository root** in VS Code. In its PowerShell terminal, install project dependencies into the existing virtual environment (or create it first if it does not exist):
-
+### Windows (1-Click Batch Runner)
+Double-click **`run_app.bat`** (or execute in PowerShell):
 ```powershell
-py -3.13 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install --upgrade pip
-.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\run_app.bat
 ```
+*Automatically sets up Python virtual environment, installs dependencies, and launches the unified server at `http://localhost:8000`.*
 
-Run all tests:
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest -q
-```
-
-Expected test result in this integrated version: **33 passed**.
-
-### Run both mock labs offline
-
-These commands exercise the full P1→P2→P3 pipeline, including HTML and PDF reports. They do not need Docker or a CVE API key:
-
-```powershell
-.\.venv\Scripts\python.exe -m core.pipeline --lab lab_a --mock --offline
-.\.venv\Scripts\python.exe -m skeptic.run_skeptic --input data/processed/lab_a/findings.json --output-dir data/processed/lab_a --pdf
-
-.\.venv\Scripts\python.exe -m core.pipeline --lab lab_b --mock --offline
-.\.venv\Scripts\python.exe -m skeptic.run_skeptic --input data/processed/lab_b/findings.json --output-dir data/processed/lab_b --pdf
-```
-
-For this included mock set, the Skeptic should produce two valid verdicts and a report. **`no_modeled_paths` is an expected, honest result with the default empty offline NVD cache:** the mock data does not establish affected NVD CPE ranges and AV:N evidence, so the system must not invent a network attack path. The report explains that no paths is not proof of safety. Unit/integration tests also exercise a clearly synthetic, fully evidenced chain that results in a selected patch and `paths_after == 0`.
-
-To exercise the P1 parser itself without Docker, parse the committed Nmap-XML/Trivy-JSON **synthetic format fixtures** for either lab:
-
-```powershell
-.\.venv\Scripts\python.exe -m ingest.parse_scan --raw-dir data/mock/scanner-format/lab_a --output-dir data/processed/parser-check/lab_a
-.\.venv\Scripts\python.exe -m ingest.parse_scan --raw-dir data/mock/scanner-format/lab_b --output-dir data/processed/parser-check/lab_b
-```
-
-These are parser test fixtures derived from mock records, **not captured scanner output**. They do not replace a real Nmap/Trivy run.
-
-For Person 4's graph/Optimize UI to have a non-empty path in a deterministic local demo, use the separately committed fixture:
-
-```powershell
-.\.venv\Scripts\python.exe -m skeptic.run_skeptic --input data/mock/demo/lab_a/findings.json --output-dir data/processed/demo/lab_a --pdf
-```
-
-This fixture uses **invented future CVE IDs and fabricated NVD-shaped metadata** and is labelled synthetic throughout. It exercises the software path only; it is not scanner evidence, a real CVE, or a security assessment. The expected result is `verified`, one modeled path before, zero after, with `demo-db-fix` selected.
-
-To produce only HTML, omit `--pdf`. To force the optimizer fallback, add `--greedy` to the Skeptic command.
-
-### Run a real lab scan
-
-With Docker Desktop running, scan Lab A or Lab B first. For example:
-
-```powershell
-.\.venv\Scripts\python.exe ingest/run_scan.py --lab lab_a
-.\.venv\Scripts\python.exe -m core.pipeline --lab lab_a
-.\.venv\Scripts\python.exe -m skeptic.run_skeptic --input data/processed/lab_a/findings.json --output-dir data/processed/lab_a --pdf
-```
-
-For Lab B, replace `lab_a` with `lab_b`. The scan writes scanner outputs under `data/scans/<lab>/`; enrichment produces `data/processed/<lab>/findings.json`. The enrichment command without `--offline` makes best-effort live requests and caches responses. It can use stale cache or continue without enrichment if a service is unavailable. Stop the lab after a scan with:
-
-```powershell
-docker compose -f lab/lab_a/docker-compose.yml down
-```
-
-### Optional LLM explanations
-
-No LLM is needed to run the default workflow. To request a cached explanation for downgraded findings, set a compatible chat-completions API configuration in your local shell (never commit a real key):
-
-```powershell
-$env:P3_LLM_API_KEY = "YOUR_API_KEY"
-$env:P3_LLM_BASE_URL = "https://api.openai.com/v1"
-$env:P3_LLM_MODEL = "gpt-4o-mini"
-.\.venv\Scripts\python.exe -m skeptic.run_skeptic --input data/processed/lab_a/findings.json --output-dir data/processed/lab_a --llm-explanations --pdf
-```
-
-The LLM response is parsed as a `Verdict`, validated, retried once on invalid output, and cached by a hash of the deterministic input. The LLM may keep or downgrade a verdict, never upgrade it, and its evidence must be an exact subset of rule evidence. If the service is unavailable or output invalid, the deterministic verdict is kept. An LLM explanation is not proof of exploitability.
-
-### Optional compensating-control input
-
-A control is considered only when explicitly provided and marked effective and blocking; the program does not discover or validate controls itself. Example `controls.json`:
-
-```json
-[
-  {
-    "finding_id": "asset:CVE-2024-1234:package",
-    "name": "verified blocking control",
-    "effective": true,
-    "blocks_exploitation": true
-  }
-]
-```
-
-Pass it with `--controls controls.json` to the Skeptic command.
-
-## Person 3 rules and outputs
-
-`skeptic/skeptic_rules.py` returns a valid shared `Verdict` for every raw finding. A package finding with `port: 0` is attributed only when its package identity and installed version match an observed service on the same asset; `suggested_ports` alone never count as proof. The service port must also be present in the topology's incoming reach records. A `confirmed` graph finding additionally requires an NVD vulnerable CPE match for the installed version and an NVD network attack vector. Missing or ambiguous metadata is downgraded and marked not remotely exploitable for graph construction. Checks are deterministic triage, not exploit validation.
-
-The Skeptic run writes these files to `data/processed/<lab>/`:
-
-- `verdicts.json`: one auditable shared `Verdict` per raw input finding.
-- `reviewed_findings.json`: graph-facing findings with service attribution only where justified.
-- `graph.json`: nodes and accepted attack edges for Person 4's visualization.
-- `plan.json`: status, paths, selected patches, and independent verification details.
-- `report.html`: full, detailed, printable evidence ledger; one-page executive `report.pdf` is created when `--pdf` is used.
-- `skeptic_result.json`: compact status/count summary for API integration.
-
-The report shows rejected findings with reasons, selected patches with supporting verdict evidence, before/after path counts, and the limitations of the model. `paths_after` must be zero for a status of `verified`. If there are no supported paths before optimization, the system reports `no_modeled_paths` and **0% measured reduction**, not a false 100% success.
-
-## Repository layout
-
-```text
-contracts/models.py                  Frozen shared models
-lab/lab_a/, lab/lab_b/               Isolated Docker labs
-lab/scanner/                         Nmap scanner container
-ingest/                               Nmap/Trivy parsing and scan runner
-data/mock/                           Normalized mocks, scanner-format fixtures, and demo fixture
-core/enrich.py                        NVD/KEV/EPSS cache
-core/graph.py                         Graph and bounded path enumeration
-core/optimize.py                      ILP plus greedy patch optimizer
-core/verify.py                        Independent plan verification
-core/pipeline.py                      P1→P2 handoff
-skeptic/skeptic_rules.py              Deterministic P3 rules
-skeptic/skeptic_llm.py                Optional validated explanations
-skeptic/run_skeptic.py                P3→P2→report orchestration
-report/template.html                  Detailed Jinja2 HTML report
-report/pdf_template.html              One-page PDF executive summary template
-report/build_report.py                HTML and optional PDF rendering
-tests/                                P1, P2, P3 and integration tests
-api/, ui/                             Person 4's remaining deliverables
-```
-
-## Safety and honest limitations
-
-The labs contain intentionally old software and must be run only on your own machine and isolated Docker networks. Do not connect them to a real network or scan systems without authorization. The tool runs no exploits. Reachability is modeled from the lab's declared network membership and observed open ports; it is not a general firewall-policy scanner. CVE applicability and software-version parsing can be incomplete, NVD metadata may be unavailable, and a Skeptic verdict does not prove whether a vulnerability is exploitable. Path counts are bounded by the hop limit. Patch costs are effort heuristics. A verified plan means every **modeled** path is cut, not that a real environment is secure.
-
-## Run the product (Persona 4 Delivery)
-
-### 1. Installation
-
-**Windows PowerShell:**
-```powershell
-# Python API virtual environment
-py -3.12 -m venv .venv
-.\.venv\Scripts\python.exe -m pip install --upgrade pip
-.\.venv\Scripts\python.exe -m pip install -r requirements-api.txt
-
-# Node.js UI dependencies (npm)
-cd ui
-npm install
-cd ..
-```
-
-**Unix / macOS:**
+### macOS / Linux (1-Line Bash Runner)
 ```bash
-python3 -m venv .venv
-./.venv/bin/pip install --upgrade pip
-./.venv/bin/pip install -r requirements-api.txt
-
-cd ui
-npm install
-cd ..
+chmod +x run_app.sh
+./run_app.sh
 ```
 
-### 2. Run All Automated Tests (47 Passing)
+Open your browser to: **http://localhost:8000**
 
-```powershell
-# Runs 33 core engine baseline tests + 14 API integration tests
-.\.venv\Scripts\python.exe -m pytest tests -v
+---
+
+## 4. Manual Setup & Execution
+
+### Prerequisites
+- Python 3.11, 3.12, or 3.13 installed
+- Git
+
+### Step-by-Step Instructions
+
+1. **Clone and Navigate:**
+   ```bash
+   git clone https://github.com/Gitika-27/DataOps-FurtureForge.git
+   cd DataOps-FurtureForge
+   ```
+
+2. **Create and Activate Python Virtual Environment:**
+   - **Windows:**
+     ```powershell
+     python -m venv .venv
+     .\.venv\Scripts\activate
+     ```
+   - **macOS / Linux:**
+     ```bash
+     python3 -m venv .venv
+     source .venv/bin/activate
+     ```
+
+3. **Install Dependencies:**
+   ```bash
+   pip install --upgrade pip
+   pip install -r requirements-api.txt
+   ```
+
+4. **Launch the Unified Production Server:**
+   ```bash
+   python -m uvicorn api.app:app --host 127.0.0.1 --port 8000
+   ```
+   - **Landing Page & Playground:** http://localhost:8000/
+   - **Operational Atelier Console:** http://localhost:8000/console
+   - **Executive Audit Report:** http://localhost:8000/console/report
+
+---
+
+## 5. Optional Frontend Development (Vite HMR)
+
+If you wish to modify the React / TypeScript UI source code:
+
+1. **Install Node.js dependencies:**
+   ```bash
+   cd ui
+   npm install
+   ```
+
+2. **Run in Dual-Process Development Mode:**
+   - **Terminal 1 (Backend API):**
+     ```bash
+     python -m uvicorn api.app:app --host 127.0.0.1 --port 8000 --reload
+     ```
+   - **Terminal 2 (Frontend HMR):**
+     ```bash
+     cd ui
+     npm run dev
+     ```
+     *Access the live development server at `http://localhost:5173`.*
+
+3. **Rebuild Production Bundle:**
+   ```bash
+   cd ui
+   npm run build
+   ```
+
+---
+
+## 6. Automated Testing & Verification
+
+The repository includes a comprehensive 47-test automated verification suite covering both core algorithmic logic and REST API endpoints:
+
+```bash
+# Run full backend pytest suite (47 passed)
+pytest tests -v
 ```
 
-```powershell
-# Runs Vitest unit tests for UI adapters and evidence classifiers
+```bash
+# Run frontend unit tests (Vitest)
 cd ui
 npm test
-cd ..
 ```
 
-### 3. Single-Process Production Mode (FastAPI serving built UI)
-
-Build the frontend bundle once, then run a single unified Python server:
-
-```powershell
-cd ui
-npm run build
-cd ..
-.\.venv\Scripts\python.exe -m uvicorn api.app:app --host 127.0.0.1 --port 8000
-```
-Open **`http://127.0.0.1:8000`** in your browser.
-
-### 4. Dual-Process Development Mode
-
-In Terminal 1 (FastAPI backend):
-```powershell
-.\.venv\Scripts\python.exe -m uvicorn api.app:app --host 127.0.0.1 --port 8000 --reload
+```bash
+# Run headless browser end-to-end interaction test
+node scripts/test_ui_interactions.js
 ```
 
-In Terminal 2 (Vite HMR frontend):
-```powershell
-cd ui
-npm run dev
+### Benchmark Metrics (`docs/EVALUATION.md`)
+- **Demo Lab A (Synthetic Scenario):**
+  - Modeled paths before: `1` → Modeled paths after: `0`
+  - Selected patch: `demo-db-fix` (cost: $25)
+  - Modeled path reduction: **100.0%**
+  - Patch cost savings vs. exhaustive baseline: **50.0%** ($25 vs. $50)
+  - Status: `verified` (Pass)
+- **Mock Lab A & Lab B (Offline Scans):**
+  - Modeled paths before: `0` → Modeled paths after: `0`
+  - Status: `no_modeled_paths` (Fail-closed honest result: unpopulated offline NVD cache correctly prevents false positive attack edges).
+
+---
+
+## 7. Team Structure & Ownership
+
+FutureForge was developed across four specialized engineering personas:
+
+- **Person 1 — Lab & Ingestion (`lab/`, `ingest/`):**
+  Docker Compose laboratory targets, Nmap service scanning, Trivy container image scanning, and normalization into Pydantic models.
+- **Person 2 — Graph, Optimizer & Verifier (`core/`):**
+  NVD/KEV/EPSS enrichment cache, NetworkX directed multigraph construction, PuLP/CBC minimum-cost hitting-set solver, and independent graph copy verification.
+- **Person 3 — Skeptic Agent & Evidence Ledger (`skeptic/`, `report/`):**
+  Deterministic 6-rule verification engine, evidence ledger classification, Jinja2 `report.html`, and one-page PDF report generation.
+- **Person 4 — API, User Interface & Demo Orchestration (`api/`, `ui/`, `scripts/`):**
+  FastAPI REST backend, React 18 + Vite + Cytoscape visualizer, WAAPI motion sequencer, interactive sandboxes, and offline snapshot fallback.
+
+---
+
+## 8. Intellectual Honesty & Model Boundaries
+
+FutureForge is designed with strict adherence to scientific and engineering honesty:
+1. **Bounded Graph Horizon:** Path enumeration (`nx.all_simple_paths`) enforces a default cap of 8 hops. Lateral pivoting beyond 8 hops is outside the bounded model.
+2. **Fail-Closed Missing Evidence:** If an asset, service version, open port, or NVD vector cannot be confirmed by scan evidence, the Skeptic downgrades the finding. Missing evidence produces missing attack edges.
+3. **Synthetic Demo Stamping:** Demonstration fixtures with `CVE-2099-*` identifiers are explicitly labeled with persistent amber `SYNTHETIC DATA` badges.
+4. **No Exploits / No Patch Deployment:** The system proposes and verifies remediation plans; it never executes offensive payloads or deploys patches to live environments.
+5. **No False Safety Claims:** A status of `verified` proves that all modeled paths in the bounded graph are cut. It does not claim that a real-world infrastructure is "100% secure" or "zero risk".
+
+---
+
+## 9. Repository Layout
+
+```text
+FutureForge/
+├── api/                             # FastAPI application & REST routing
+│   ├── app.py                       # Application factory & static UI serving
+│   ├── routes.py                    # REST API routes (/api/runs, /api/health)
+│   ├── service.py                   # Run orchestration & cut edge derivation
+│   └── models.py                    # API request and response schemas
+├── contracts/
+│   └── models.py                    # Immutable frozen Pydantic domain models
+├── core/
+│   ├── enrich.py                    # Local NVD/KEV/EPSS caching
+│   ├── graph.py                     # NetworkX attack graph & simple path discovery
+│   ├── optimize.py                  # PuLP/CBC ILP min-cut patch hitting-set solver
+│   ├── pipeline.py                  # Handoff normalization pipeline
+│   └── verify.py                    # Independent plan verification on cloned graph
+├── skeptic/
+│   ├── skeptic_rules.py             # Deterministic 6-rule Skeptic evaluation
+│   ├── skeptic_llm.py               # Optional cached explanation module
+│   └── run_skeptic.py               # Orchestrator for Skeptic, Graph & Report
+├── report/
+│   ├── build_report.py              # HTML & PDF document compiler
+│   ├── template.html                # Jinja2 audit ledger template
+│   └── pdf_template.html            # One-page executive PDF summary template
+├── ingest/
+│   ├── parse_scan.py                # Scanner XML/JSON normalizer
+│   └── run_scan.py                  # Nmap & Trivy lab scan runner
+├── lab/                             # Isolated Docker Compose lab environments
+│   ├── lab_a/                       # 3-tier architecture (Internet, DMZ, Internal)
+│   └── lab_b/                       # Alternative jumpbox topology
+├── data/
+│   ├── mock/                        # Committed offline fixtures & demo dataset
+│   └── snapshots/                   # Frozen fallback run bundles for offline demo
+├── ui/                              # "The Evidence Atelier" Frontend
+│   ├── dist/                        # Pre-compiled production bundle (Node not required)
+│   ├── src/                         # Full React 18, TypeScript & Tailwind source
+│   ├── package.json                 # UI dependencies & scripts
+│   └── vite.config.ts               # Vite configuration
+├── tests/                           # 47 automated tests (engine + API)
+├── scripts/                         # Packaging, evaluation, and screenshot tools
+├── docs/                            # EVALUATION.md benchmarks & technical specs
+├── run_app.bat                      # 1-Click Windows execution script
+├── run_app.sh                       # 1-Line Unix / macOS execution script
+├── requirements-api.txt             # Complete Python dependencies
+├── requirements.txt                 # Base engine dependencies
+├── API_CONTRACT.md                  # Detailed OpenAPI endpoint specification
+├── DEMO_SCRIPT.md                   # 2-minute pitch & operator cue sheet
+└── JUDGES_GUIDE.md                  # Hackathon judging guide & mathematical proofs
 ```
-Open **`http://localhost:5173`** in your browser (proxies `/api` to port 8000).
 
-### 5. Synthetic Demo & Evaluation Scripts
+---
 
-```powershell
-# Generate fresh freeze demo snapshot fallback
-.\.venv\Scripts\python.exe scripts/freeze_demo.py
+## 10. License & Credits
 
-# Run benchmark evaluation across all scenarios and generate docs/EVALUATION.md
-.\.venv\Scripts\python.exe scripts/evaluate_demo.py
-```
-
-## Handoff checklist for Person 4
-
-- [x] Frozen contracts and P1/P2 modules retained.
-- [x] P3 returns a valid `Verdict` for every supplied finding.
-- [x] P3 cannot add findings or allow an LLM to upgrade a verdict.
-- [x] Mock P1→P2→P3 run works for both labs offline.
-- [x] Synthetic raw Nmap-XML/Trivy-JSON fixtures parse through P1 for both labs.
-- [x] Graph, plan, verdicts, report HTML, and optional PDF are written as files.
-- [x] PDF is a one-page executive summary; HTML retains the detailed evidence ledger.
-- [x] Verified synthetic chain demonstrates `paths_after == 0` in tests.
-- [x] Person 4 integrates the FastAPI endpoints, React/Vite/Cytoscape interface, and demo mode.
-- [x] Run and rehearse the complete UI demo after Person 4 integration (all 47 tests passing).
+Built by Team **FutureForge** (Persons 1, 2, 3, and 4) for the DataOps Hackathon.  
+Tagline: *Don't patch everything. Cut the path.*
